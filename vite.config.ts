@@ -12,6 +12,9 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // Base path per Electron production (file:// protocol)
+  base: './',
+
   plugins: [
     // Plugin React per JSX e Fast Refresh
     react(),
