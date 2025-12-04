@@ -32,10 +32,27 @@ function getDatabasePath(): string {
 }
 
 /**
+ * Ottiene il percorso della cartella migrazioni
+ * In development usa la cartella del progetto, in production usa extraResources
+ */
+function getMigrationsDir(): string {
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+  if (isDev) {
+    // In development, usa la cartella del progetto
+    return path.join(__dirname, 'migrations');
+  } else {
+    // In production, i file sono copiati in resources/electron/database/migrations via extraResources
+    return path.join(process.resourcesPath, 'electron', 'database', 'migrations');
+  }
+}
+
+/**
  * Legge e esegue i file SQL di migrazione in ordine
  */
 function runMigrations(database: Database.Database): void {
-  const migrationsDir = path.join(__dirname, 'migrations');
+  const migrationsDir = getMigrationsDir();
+  console.log('[Database] Cercando migrazioni in:', migrationsDir);
 
   // Lista delle migration da eseguire in ordine
   const migrations = [

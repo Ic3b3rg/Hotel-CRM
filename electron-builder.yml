@@ -14,9 +14,9 @@ files:
   - dist-electron/**/*
   - node_modules/better-sqlite3/**/*
 
-# extraResources:
-#   - from: resources/
-#     to: resources/
+extraResources:
+  - from: electron/database/migrations/
+    to: electron/database/migrations/
 
 # macOS Configuration
 mac:
