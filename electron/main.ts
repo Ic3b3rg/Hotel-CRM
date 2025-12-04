@@ -22,10 +22,20 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 function createWindow() {
   // Verifica che il preload esista
   const preloadPath = path.join(__dirname, 'preload.cjs');
+  const preloadExists = fs.existsSync(preloadPath);
+
+  console.log('[Main] === Verifica Preload ===');
+  console.log('[Main] Platform:', process.platform);
   console.log('[Main] Preload path:', preloadPath);
-  console.log('[Main] Preload exists:', fs.existsSync(preloadPath));
+  console.log('[Main] Preload exists:', preloadExists);
   console.log('[Main] __dirname:', __dirname);
   console.log('[Main] app.isPackaged:', app.isPackaged);
+  console.log('[Main] process.resourcesPath:', process.resourcesPath);
+
+  if (!preloadExists) {
+    console.error('[Main] ERRORE CRITICO: preload.cjs non trovato!');
+    console.error('[Main] Questo causera errori "window.api undefined" nel renderer');
+  }
 
   mainWindow = new BrowserWindow({
     width: 1400,

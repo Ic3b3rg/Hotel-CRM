@@ -17,6 +17,9 @@ export function useDeals(options: UseDealsOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.deals) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.deals.getAll();
       if (response.success && response.data) {
         setDeals(response.data);
@@ -32,6 +35,9 @@ export function useDeals(options: UseDealsOptions = { autoFetch: true }) {
 
   const fetchByBuyer = useCallback(async (buyerId: string): Promise<Deal[]> => {
     try {
+      if (!window.api?.deals) {
+        return [];
+      }
       const response = await window.api.deals.getByBuyer(buyerId);
       if (response.success && response.data) {
         return response.data;
@@ -44,6 +50,9 @@ export function useDeals(options: UseDealsOptions = { autoFetch: true }) {
 
   const fetchByProperty = useCallback(async (propertyId: string): Promise<Deal[]> => {
     try {
+      if (!window.api?.deals) {
+        return [];
+      }
       const response = await window.api.deals.getByProperty(propertyId);
       if (response.success && response.data) {
         return response.data;
@@ -58,6 +67,9 @@ export function useDeals(options: UseDealsOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.deals) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.deals.create(data);
       if (response.success && response.data) {
         setDeals((prev) => [response.data!, ...prev]);
@@ -78,6 +90,9 @@ export function useDeals(options: UseDealsOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.deals) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.deals.update(data);
       if (response.success && response.data) {
         setDeals((prev) => prev.map((d) => (d.id === data.id ? response.data! : d)));
@@ -96,6 +111,9 @@ export function useDeals(options: UseDealsOptions = { autoFetch: true }) {
 
   const updateStatus = useCallback(async (id: string, status: DealStatus): Promise<Deal | null> => {
     try {
+      if (!window.api?.deals) {
+        return null;
+      }
       const response = await window.api.deals.updateStatus(id, status);
       if (response.success && response.data) {
         setDeals((prev) => prev.map((d) => (d.id === id ? response.data! : d)));
@@ -111,6 +129,9 @@ export function useDeals(options: UseDealsOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.deals) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.deals.delete(id);
       if (response.success) {
         setDeals((prev) => prev.filter((d) => d.id !== id));

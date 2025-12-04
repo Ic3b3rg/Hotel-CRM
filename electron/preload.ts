@@ -202,11 +202,17 @@ const api = {
 
 // [EXPOSE] Espone l'API al renderer in modo sicuro
 try {
-  console.log('[Preload] Esposizione API...');
+  console.log('[Preload] Tentativo esposizione API...');
+  console.log('[Preload] contextBridge disponibile:', !!contextBridge);
+  console.log('[Preload] ipcRenderer disponibile:', !!ipcRenderer);
+
   contextBridge.exposeInMainWorld('api', api);
+
   console.log('[Preload] API esposta con successo!');
+  console.log('[Preload] Verifica completata - API pronta per il renderer');
 } catch (error) {
-  console.error('[Preload] ERRORE durante esposizione API:', error);
+  console.error('[Preload] ERRORE CRITICO durante esposizione API:', error);
+  console.error('[Preload] Stack trace:', error instanceof Error ? error.stack : 'N/A');
 }
 
 // Il tipo ElectronAPI è definito in src/vite-env.d.ts

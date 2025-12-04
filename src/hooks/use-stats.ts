@@ -13,6 +13,9 @@ export function useStats(autoFetch: boolean = true) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.stats) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.stats.getDashboard();
       if (response.success && response.data) {
         setStats(response.data);
@@ -50,6 +53,9 @@ export function useStaleDeals(days: number = 30, autoFetch: boolean = true) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.stats) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.stats.getStaleDeals(days);
       if (response.success && response.data) {
         setStaleDeals(response.data);

@@ -18,6 +18,9 @@ export function useSellers(options: UseSellersOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.sellers) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.sellers.getAll(filters);
       if (response.success && response.data) {
         setSellers(response.data);
@@ -35,6 +38,9 @@ export function useSellers(options: UseSellersOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.sellers) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.sellers.create(data);
       if (response.success && response.data) {
         setSellers((prev) => [response.data!, ...prev]);
@@ -55,6 +61,9 @@ export function useSellers(options: UseSellersOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.sellers) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.sellers.update(data);
       if (response.success && response.data) {
         setSellers((prev) => prev.map((s) => (s.id === data.id ? response.data! : s)));
@@ -75,6 +84,9 @@ export function useSellers(options: UseSellersOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.sellers) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.sellers.delete(id);
       if (response.success) {
         setSellers((prev) => prev.filter((s) => s.id !== id));

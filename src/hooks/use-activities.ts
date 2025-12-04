@@ -18,6 +18,9 @@ export function useActivities(options: UseActivitiesOptions = {}) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.activities) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.activities.getByDeal(dealId);
       if (response.success && response.data) {
         setActivities(response.data);
@@ -38,6 +41,9 @@ export function useActivities(options: UseActivitiesOptions = {}) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.activities) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.activities.create(data);
       if (response.success && response.data) {
         setActivities((prev) => [response.data!, ...prev]);
@@ -58,6 +64,9 @@ export function useActivities(options: UseActivitiesOptions = {}) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.activities) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.activities.delete(id);
       if (response.success) {
         setActivities((prev) => prev.filter((a) => a.id !== id));

@@ -18,6 +18,9 @@ export function useProperties(options: UsePropertiesOptions = { autoFetch: true 
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.properties) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.properties.getAll(filters);
       if (response.success && response.data) {
         setProperties(response.data);
@@ -35,6 +38,9 @@ export function useProperties(options: UsePropertiesOptions = { autoFetch: true 
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.properties) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.properties.getBySeller(sellerId);
       if (response.success && response.data) {
         setProperties(response.data);
@@ -52,6 +58,9 @@ export function useProperties(options: UsePropertiesOptions = { autoFetch: true 
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.properties) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.properties.create(data);
       if (response.success && response.data) {
         setProperties((prev) => [response.data!, ...prev]);
@@ -72,6 +81,9 @@ export function useProperties(options: UsePropertiesOptions = { autoFetch: true 
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.properties) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.properties.update(data);
       if (response.success && response.data) {
         setProperties((prev) => prev.map((p) => (p.id === data.id ? response.data! : p)));
@@ -92,6 +104,9 @@ export function useProperties(options: UsePropertiesOptions = { autoFetch: true 
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.properties) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.properties.delete(id);
       if (response.success) {
         setProperties((prev) => prev.filter((p) => p.id !== id));

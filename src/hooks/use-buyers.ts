@@ -18,6 +18,10 @@ export function useBuyers(options: UseBuyersOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      // Check critico: verifica che l'API sia disponibile
+      if (typeof window === 'undefined' || !window.api?.buyers) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.buyers.getAll(filters);
       if (response.success && response.data) {
         setBuyers(response.data);
@@ -35,6 +39,9 @@ export function useBuyers(options: UseBuyersOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.buyers) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.buyers.create(data);
       if (response.success && response.data) {
         setBuyers((prev) => [response.data!, ...prev]);
@@ -55,6 +62,9 @@ export function useBuyers(options: UseBuyersOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.buyers) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.buyers.update(data);
       if (response.success && response.data) {
         setBuyers((prev) => prev.map((b) => (b.id === data.id ? response.data! : b)));
@@ -75,6 +85,9 @@ export function useBuyers(options: UseBuyersOptions = { autoFetch: true }) {
     setLoading(true);
     setError(null);
     try {
+      if (!window.api?.buyers) {
+        throw new Error('API non disponibile. Riavvia l\'applicazione.');
+      }
       const response = await window.api.buyers.delete(id);
       if (response.success) {
         setBuyers((prev) => prev.filter((b) => b.id !== id));
@@ -124,6 +137,9 @@ export function useBuyer(id: string | null) {
     const fetchBuyer = async () => {
       setLoading(true);
       try {
+        if (!window.api?.buyers) {
+          throw new Error('API non disponibile. Riavvia l\'applicazione.');
+        }
         const response = await window.api.buyers.getById(id);
         if (response.success && response.data) {
           setBuyer(response.data);
