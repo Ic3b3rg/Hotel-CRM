@@ -1,0 +1,74 @@
+# [CONFIG] Electron Builder configuration for cross-platform packaging
+# Genera installer per macOS (DMG, ZIP) e Windows (NSIS, Portable)
+
+appId: com.hotelcrm.desktop
+productName: HotelCRM
+copyright: Copyright © 2024 HotelCRM
+
+directories:
+  buildResources: resources
+  output: release
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - node_modules/better-sqlite3/**/*
+
+# extraResources:
+#   - from: resources/
+#     to: resources/
+
+# macOS Configuration
+mac:
+  category: public.app-category.business
+  # icon: resources/icon.icns  # Decommentare quando disponibile
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# Windows Configuration
+win:
+  # icon: resources/icon.ico  # Decommentare quando disponibile
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  # installerIcon: resources/icon.ico  # Decommentare quando disponibile
+  # uninstallerIcon: resources/icon.ico
+  license: LICENSE
+
+# Linux Configuration (opzionale)
+linux:
+  # icon: resources/icon.png  # Decommentare quando disponibile
+  target:
+    - AppImage
+    - deb
+  category: Office
+
+# Rebuild native modules for Electron
+npmRebuild: true
