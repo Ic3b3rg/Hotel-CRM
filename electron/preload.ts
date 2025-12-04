@@ -201,8 +201,12 @@ const api = {
 };
 
 // [EXPOSE] Espone l'API al renderer in modo sicuro
-console.log('[Preload] Esposizione API...');
-contextBridge.exposeInMainWorld('api', api);
-console.log('[Preload] API esposta con successo!');
+try {
+  console.log('[Preload] Esposizione API...');
+  contextBridge.exposeInMainWorld('api', api);
+  console.log('[Preload] API esposta con successo!');
+} catch (error) {
+  console.error('[Preload] ERRORE durante esposizione API:', error);
+}
 
 // Il tipo ElectronAPI è definito in src/vite-env.d.ts

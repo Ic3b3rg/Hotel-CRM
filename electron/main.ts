@@ -3,6 +3,7 @@
 
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { initDatabase, closeDatabase } from './database/connection';
 import { registerIpcHandlers } from './ipc/index';
@@ -19,13 +20,20 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 // [WINDOW] Crea la finestra principale dell'applicazione
 function createWindow() {
+  // Verifica che il preload esista
+  const preloadPath = path.join(__dirname, 'preload.cjs');
+  console.log('[Main] Preload path:', preloadPath);
+  console.log('[Main] Preload exists:', fs.existsSync(preloadPath));
+  console.log('[Main] __dirname:', __dirname);
+  console.log('[Main] app.isPackaged:', app.isPackaged);
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1024,
     minHeight: 768,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: preloadPath,
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,

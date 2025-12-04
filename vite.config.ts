@@ -6,7 +6,6 @@ import react from '@vitejs/plugin-react';
 import electron from 'vite-plugin-electron';
 import renderer from 'vite-plugin-electron-renderer';
 import path from 'path';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,17 +18,12 @@ export default defineConfig({
     // Plugin React per JSX e Fast Refresh
     react(),
 
-    // Plugin Electron per compilare solo main.ts
+    // Plugin Electron per compilare main.ts e preload.ts
     electron([
       {
         // Main process entry point
         entry: 'electron/main.ts',
         onstart(args) {
-          // Copia preload.cjs manualmente dopo il build
-          const src = path.join(__dirname, 'electron/preload.cjs');
-          const dest = path.join(__dirname, 'dist-electron/preload.cjs');
-          fs.copyFileSync(src, dest);
-          console.log('[Build] Copiato preload.cjs');
           args.startup();
         },
         vite: {
@@ -38,6 +32,24 @@ export default defineConfig({
             rollupOptions: {
               // better-sqlite3 deve essere esternalizzato (modulo nativo)
               external: ['better-sqlite3'],
+            },
+          },
+        },
+      },
+      {
+        // Preload script - DEVE essere compilato separatamente come CJS
+        entry: 'electron/preload.ts',
+        onstart(args) {
+          args.reload();
+        },
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            rollupOptions: {
+              output: {
+                format: 'cjs',
+                entryFileNames: 'preload.cjs',
+              },
             },
           },
         },
