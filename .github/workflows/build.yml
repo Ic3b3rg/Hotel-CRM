@@ -23,7 +23,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline
         env:
           npm_config_msvs_version: 2022
 
@@ -52,10 +52,8 @@ jobs:
           node-version: "22"
           cache: "npm"
 
-      - name: Clean install dependencies
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install
+      - name: Install dependencies
+        run: npm ci --prefer-offline
 
       - name: Build macOS
         run: npm run build:mac
