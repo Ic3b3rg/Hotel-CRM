@@ -46,6 +46,7 @@ dmg:
 # Windows Configuration
 win:
   # icon: resources/icon.ico  # Decommentare quando disponibile
+  signAndEditExecutable: false  # Disabilita firma per evitare problemi con symlinks su Windows
   target:
     - target: nsis
       arch:
@@ -61,6 +62,7 @@ nsis:
   # installerIcon: resources/icon.ico  # Decommentare quando disponibile
   # uninstallerIcon: resources/icon.ico
   license: LICENSE
+  differentialPackage: false  # Disabilita packaging differenziale per evitare errori con file mancanti
 
 # Linux Configuration (opzionale)
 linux:

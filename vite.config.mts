@@ -30,14 +30,14 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              // better-sqlite3 deve essere esternalizzato (modulo nativo)
-              external: ['better-sqlite3'],
+              // Esternalizza moduli nativi e electron
+              external: ['better-sqlite3', 'electron'],
             },
           },
         },
       },
       {
-        // Preload script - DEVE essere compilato separatamente come CJS
+        // Preload script
         entry: 'electron/preload.ts',
         onstart(args) {
           args.reload();
@@ -46,10 +46,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              output: {
-                format: 'cjs',
-                entryFileNames: 'preload.cjs',
-              },
+              external: ['electron'],
             },
           },
         },

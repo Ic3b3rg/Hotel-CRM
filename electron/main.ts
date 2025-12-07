@@ -21,7 +21,7 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 // [WINDOW] Crea la finestra principale dell'applicazione
 function createWindow() {
   // Verifica che il preload esista
-  const preloadPath = path.join(__dirname, 'preload.cjs');
+  const preloadPath = path.join(__dirname, 'preload.js');
   console.log('[Main] Preload path:', preloadPath);
   console.log('[Main] Preload exists:', fs.existsSync(preloadPath));
   console.log('[Main] __dirname:', __dirname);

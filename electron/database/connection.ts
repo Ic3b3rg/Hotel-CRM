@@ -1,15 +1,18 @@
 // [DATABASE] SQLite connection management
 // Gestisce la connessione al database SQLite e le migrazioni
 
-import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+import type Database from 'better-sqlite3';
 
 // ESM compatibility
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
+const BetterSqlite3 = require('better-sqlite3') as typeof Database;
 
 // [GLOBALS] Istanza del database
 let db: Database.Database | null = null;
@@ -241,7 +244,7 @@ export async function initDatabase(): Promise<Database.Database> {
   }
 
   // Apri la connessione
-  db = new Database(dbPath, {
+  db = new BetterSqlite3(dbPath, {
     // Abilita foreign keys
     fileMustExist: false,
   });
