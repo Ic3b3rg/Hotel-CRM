@@ -56,11 +56,8 @@ jobs:
       - name: Upgrade npm to fix optional dependencies bug
         run: npm install -g npm@latest
 
-      - name: Clear npm cache
-        run: npm cache clean --force
-
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build macOS
         run: npm run build:mac
