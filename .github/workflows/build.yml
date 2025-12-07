@@ -50,10 +50,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
+          # Temporarily disable cache to ensure clean install with new npm
+          # cache: "npm"
+
+      - name: Upgrade npm to fix optional dependencies bug
+        run: npm install -g npm@latest
+
+      - name: Clear npm cache
+        run: npm cache clean --force
 
       - name: Install dependencies
-        run: npm ci --prefer-offline
+        run: npm ci
 
       - name: Build macOS
         run: npm run build:mac
