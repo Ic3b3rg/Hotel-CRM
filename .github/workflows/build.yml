@@ -19,11 +19,16 @@ jobs:
           node-version: "22"
           cache: "npm"
 
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
       - name: Install dependencies
         run: npm ci
+        env:
+          npm_config_msvs_version: 2022
 
       - name: Build Windows
-        run: npx tsc && npx vite build && npx electron-builder --win --publish never
+        run: npm run build:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -44,14 +49,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Clean install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
 
       - name: Build macOS
-        run: npx tsc && npx vite build && npx electron-builder --mac --publish never
+        run: npm run build:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
