@@ -29,8 +29,7 @@ jobs:
 
       - name: Build Windows
         run: npm run build:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # GH_TOKEN removed - publishing handled by release job
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -62,7 +61,7 @@ jobs:
       - name: Build macOS
         run: npm run build:mac
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GH_TOKEN removed - publishing handled by release job
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload macOS artifacts
