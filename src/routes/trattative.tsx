@@ -13,7 +13,7 @@ import { useDeals } from '@/hooks/use-deals';
 import { useBuyers } from '@/hooks/use-buyers';
 import { useProperties } from '@/hooks/use-properties';
 import { useActivities } from '@/hooks/use-activities';
-import { formatCurrency, formatDate, getDealStatusLabel, getDealStatusColor, getActivityTypeLabel } from '@/lib/utils-crm';
+import { formatCurrency, formatDate, getDealStatusLabel, getDealStatusColor, getActivityTypeLabel, getDealOggettoLabel, getPagamentoStatusLabel } from '@/lib/utils-crm';
 import type { Deal, DealStatus, CreateDealRequest, UpdateDealRequest, CreateActivityRequest } from '@/lib/types';
 import { Handshake, LayoutGrid, Table, Loader2, Plus, Phone, Mail, Calendar, FileText, Clock, Pencil, Trash2 } from 'lucide-react';
 import {
@@ -271,6 +271,12 @@ export default function TrattativePage() {
                     Stato
                   </th>
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">
+                    Oggetto
+                  </th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">
+                    Richiesto
+                  </th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">
                     Offerta
                   </th>
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase px-4 py-3">
@@ -294,6 +300,16 @@ export default function TrattativePage() {
                       <TagBadge className={getDealStatusColor(deal.status)}>
                         {getDealStatusLabel(deal.status)}
                       </TagBadge>
+                    </td>
+                    <td className="px-4 py-3">
+                      {deal.oggetto ? (
+                        <TagBadge className="bg-violet-100 text-violet-700">
+                          {getDealOggettoLabel(deal.oggetto)}
+                        </TagBadge>
+                      ) : '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {deal.prezzoRichiesto ? formatCurrency(deal.prezzoRichiesto) : '-'}
                     </td>
                     <td className="px-4 py-3">
                       {deal.priceOffered ? formatCurrency(deal.priceOffered) : '-'}
@@ -342,15 +358,26 @@ export default function TrattativePage() {
               </div>
             </div>
 
-            {/* Status */}
+            {/* Status and Oggetto */}
             <div className="flex items-center gap-2">
               <TagBadge className={getDealStatusColor(selectedDeal.status)}>
                 {getDealStatusLabel(selectedDeal.status)}
               </TagBadge>
+              {selectedDeal.oggetto && (
+                <TagBadge className="bg-violet-100 text-violet-700">
+                  {getDealOggettoLabel(selectedDeal.oggetto)}
+                </TagBadge>
+              )}
             </div>
 
             {/* Info */}
             <div className="grid grid-cols-2 gap-4 text-sm">
+              {selectedDeal.prezzoRichiesto && (
+                <div>
+                  <span className="text-muted-foreground">Richiesto:</span>{' '}
+                  <span className="font-medium">{formatCurrency(selectedDeal.prezzoRichiesto)}</span>
+                </div>
+              )}
               {selectedDeal.priceOffered && (
                 <div>
                   <span className="text-muted-foreground">Offerta:</span>{' '}
@@ -372,6 +399,64 @@ export default function TrattativePage() {
                 {formatDate(selectedDeal.updatedAt)}
               </div>
             </div>
+
+            {/* Sezione Provvigioni */}
+            {(selectedDeal.provvigioneCompratore !== undefined || selectedDeal.provvigioneVenditore !== undefined) && (
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-medium mb-3">Provvigioni</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {/* Compratore */}
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs uppercase">Compratore</p>
+                    {selectedDeal.provvigioneCompratore !== undefined && (
+                      <p><span className="text-muted-foreground">Provvigione:</span> <span className="font-medium">{selectedDeal.provvigioneCompratore}%</span></p>
+                    )}
+                    {selectedDeal.collaboratoreCompratore && (
+                      <p><span className="text-muted-foreground">Collaboratore:</span> <span className="font-medium">{selectedDeal.collaboratoreCompratore}</span></p>
+                    )}
+                  </div>
+                  {/* Venditore */}
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs uppercase">Venditore</p>
+                    {selectedDeal.provvigioneVenditore !== undefined && (
+                      <p><span className="text-muted-foreground">Provvigione:</span> <span className="font-medium">{selectedDeal.provvigioneVenditore}%</span></p>
+                    )}
+                    {selectedDeal.collaboratoreVenditore && (
+                      <p><span className="text-muted-foreground">Collaboratore:</span> <span className="font-medium">{selectedDeal.collaboratoreVenditore}</span></p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sezione Pagamenti */}
+            {(selectedDeal.pagamentoCompratore || selectedDeal.pagamentoVenditore) && (
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-medium mb-3">Pagamenti</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {/* Compratore */}
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs uppercase">Compratore</p>
+                    {selectedDeal.pagamentoCompratore && (
+                      <p><span className="text-muted-foreground">Pagato:</span> <span className="font-medium">{getPagamentoStatusLabel(selectedDeal.pagamentoCompratore)}</span></p>
+                    )}
+                    {selectedDeal.accontoCompratore && (
+                      <p><span className="text-muted-foreground">Acconto:</span> <span className="font-medium text-green-600">Sì</span></p>
+                    )}
+                  </div>
+                  {/* Venditore */}
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs uppercase">Venditore</p>
+                    {selectedDeal.pagamentoVenditore && (
+                      <p><span className="text-muted-foreground">Pagato:</span> <span className="font-medium">{getPagamentoStatusLabel(selectedDeal.pagamentoVenditore)}</span></p>
+                    )}
+                    {selectedDeal.accontoVenditore && (
+                      <p><span className="text-muted-foreground">Acconto:</span> <span className="font-medium text-green-600">Sì</span></p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Sezione Attivita */}
             <div className="pt-4 border-t">

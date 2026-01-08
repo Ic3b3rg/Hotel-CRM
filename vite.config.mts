@@ -10,6 +10,9 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Flag per evitare avvii multipli di Electron
+let electronStarted = false;
+
 export default defineConfig({
   // Base path per Electron production (file:// protocol)
   base: './',
@@ -24,7 +27,10 @@ export default defineConfig({
         // Main process entry point
         entry: 'electron/main.ts',
         onstart(args) {
-          args.startup();
+          if (!electronStarted) {
+            electronStarted = true;
+            args.startup();
+          }
         },
         vite: {
           build: {

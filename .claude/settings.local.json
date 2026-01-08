@@ -6,7 +6,12 @@
       "Bash(electron .)",
       "Bash(npx electron .)",
       "Bash(npx electron:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(cat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
