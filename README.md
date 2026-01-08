@@ -8,6 +8,30 @@ This repository documents **HotelCRM Desktop**, an offline-first CRM for Italian
 
 **Current development time:** ~8 hours (including cross-platform Mac/Windows challenges)
 
+### Usage Statistics (to date)
+
+| Metric | Value |
+|--------|-------|
+| Messages | 3,981 |
+| Sessions | 28 |
+| Tool calls | 1,344 |
+| Tokens (Opus 4.5) | ~540K |
+
+### Estimated Cost (API consumption)
+
+Based on Claude Opus 4.5 pricing ($15/1M input, $75/1M output):
+
+```
+Input tokens:  ~540K × $15/1M  = $8.10 USD
+Output tokens: ~450K × $75/1M  = $33.75 USD (estimated from tool calls)
+─────────────────────────────────────────────
+Total estimate:                  ~$42 USD ≈ €39 EUR
+```
+
+**Cost per hour of development: ~€5 EUR**
+
+This represents the API cost only—significantly lower than traditional developer rates, though human oversight remains essential for quality assurance.
+
 ## Why This Project Was Chosen
 
 This project was selected for the case study because it represents a **real-world use case**:
