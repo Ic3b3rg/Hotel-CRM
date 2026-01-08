@@ -1,7 +1,7 @@
 // [UTILS-CRM] CRM-specific utility functions
 // Funzioni di formattazione e label per il dominio CRM
 
-import type { DealStatus, PropertyType, PropertyCondition, ActivityType } from './types';
+import type { DealStatus, DealOggetto, PropertyType, PropertyCondition, ActivityType, PropertyOperationType, PagamentoStatus } from './types';
 
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('it-IT', {
@@ -29,6 +29,15 @@ export function getDealStatusLabel(status: DealStatus): string {
     chiuso_negativo: 'Chiuso -',
   };
   return labels[status];
+}
+
+export function getDealOggettoLabel(oggetto: DealOggetto): string {
+  const labels: Record<DealOggetto, string> = {
+    vendita: 'Vendita',
+    affitto: 'Affitto',
+    gestione: 'Gestione',
+  };
+  return labels[oggetto];
 }
 
 export function getDealStatusColor(status: DealStatus): string {
@@ -84,4 +93,25 @@ export function getActivityTypeLabel(type: ActivityType): string {
     follow_up: 'Follow-up',
   };
   return labels[type];
+}
+
+export function getOperationTypeLabel(type: PropertyOperationType): string {
+  const labels: Record<PropertyOperationType, string> = {
+    affitto_attivita: 'Affitto attività',
+    vendita_attivita: 'Vendita attività',
+    affitto_mura: 'Affitto mura',
+    vendita_mura: 'Vendita mura',
+    vendita_cespite: 'Vendita cespite',
+    vendita_societa: 'Vendita società',
+  };
+  return labels[type];
+}
+
+export function getPagamentoStatusLabel(status: PagamentoStatus): string {
+  const labels: Record<PagamentoStatus, string> = {
+    si: 'Sì',
+    no: 'No',
+    rateale: 'Rateale',
+  };
+  return labels[status];
 }

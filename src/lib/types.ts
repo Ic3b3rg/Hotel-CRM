@@ -23,6 +23,18 @@ export type DealStatus =
 
 export type ActivityType = 'nota' | 'chiamata' | 'email' | 'appuntamento' | 'follow_up';
 
+export type DealOggetto = 'vendita' | 'affitto' | 'gestione';
+
+export type PropertyOperationType =
+  | 'affitto_attivita'
+  | 'vendita_attivita'
+  | 'affitto_mura'
+  | 'vendita_mura'
+  | 'vendita_cespite'
+  | 'vendita_societa';
+
+export type PagamentoStatus = 'si' | 'no' | 'rateale';
+
 export type ContactPreference = 'telefono' | 'email';
 
 export type BuyerLevel = 'privato' | 'fondo' | 'gruppo_alberghiero' | 'investitore';
@@ -58,7 +70,9 @@ export interface Seller {
 export interface Property {
   id: string;
   name: string;
+  codice: string;
   address: PropertyAddress;
+  regione: string;
   type: PropertyType;
   category: PropertyCategory;
   rooms: number;
@@ -67,8 +81,12 @@ export interface Property {
   priceMin: number;
   priceMax: number;
   tags: string[];
+  operationTypes: PropertyOperationType[];
   notes: string;
   sellerId: string;
+  hasIncarico: boolean;
+  incaricoPercentuale?: number;
+  incaricoScadenza?: string;
   createdAt: Date;
 }
 
@@ -102,8 +120,18 @@ export interface Deal {
   buyerId: string;
   propertyId: string;
   status: DealStatus;
+  oggetto: DealOggetto | '';
+  prezzoRichiesto?: number;
   priceOffered?: number;
   priceNegotiated?: number;
+  provvigioneCompratore?: number;
+  collaboratoreCompratore?: string;
+  provvigioneVenditore?: number;
+  collaboratoreVenditore?: string;
+  pagamentoCompratore?: PagamentoStatus;
+  accontoCompratore?: boolean;
+  pagamentoVenditore?: PagamentoStatus;
+  accontoVenditore?: boolean;
   notes: string;
   activities: Activity[];
   createdAt: Date;
@@ -194,7 +222,9 @@ export interface SellerFilters {
 // Properties
 export interface CreatePropertyRequest {
   name: string;                        // UNICO CAMPO OBBLIGATORIO
+  codice?: string;                     // opzionale
   address?: Partial<PropertyAddress>;  // opzionale
+  regione?: string;                    // opzionale
   type?: PropertyType;                 // opzionale
   category?: PropertyCategory;         // opzionale
   rooms?: number;                      // opzionale
@@ -203,11 +233,15 @@ export interface CreatePropertyRequest {
   priceMin?: number;                   // opzionale
   priceMax?: number;                   // opzionale
   tags?: string[];                     // opzionale
+  operationTypes?: PropertyOperationType[]; // opzionale
   notes?: string;                      // opzionale
   sellerId?: string;                   // opzionale
+  hasIncarico?: boolean;               // opzionale
+  incaricoPercentuale?: number;        // opzionale
+  incaricoScadenza?: string;           // opzionale (ISO date string)
 }
 
-export interface UpdatePropertyRequest extends Partial<Omit<CreatePropertyRequest, 'sellerId'>> {
+export interface UpdatePropertyRequest extends Partial<CreatePropertyRequest> {
   id: string;
 }
 
@@ -225,16 +259,36 @@ export interface PropertyFilters {
 export interface CreateDealRequest {
   buyerId: string;
   propertyId: string;
+  oggetto: DealOggetto;
   status?: DealStatus;
+  prezzoRichiesto?: number;
   priceOffered?: number;
+  provvigioneCompratore?: number;
+  collaboratoreCompratore?: string;
+  provvigioneVenditore?: number;
+  collaboratoreVenditore?: string;
+  pagamentoCompratore?: PagamentoStatus;
+  accontoCompratore?: boolean;
+  pagamentoVenditore?: PagamentoStatus;
+  accontoVenditore?: boolean;
   notes?: string;
 }
 
 export interface UpdateDealRequest {
   id: string;
+  oggetto?: DealOggetto;
   status?: DealStatus;
+  prezzoRichiesto?: number;
   priceOffered?: number;
   priceNegotiated?: number;
+  provvigioneCompratore?: number;
+  collaboratoreCompratore?: string;
+  provvigioneVenditore?: number;
+  collaboratoreVenditore?: string;
+  pagamentoCompratore?: PagamentoStatus;
+  accontoCompratore?: boolean;
+  pagamentoVenditore?: PagamentoStatus;
+  accontoVenditore?: boolean;
   notes?: string;
 }
 
@@ -244,6 +298,27 @@ export interface CreateActivityRequest {
   date: string; // ISO string
   type: ActivityType;
   description: string;
+}
+
+// Property Attachments
+export interface PropertyAttachment {
+  id: string;
+  propertyId: string;
+  filename: string;
+  originalFilename: string;
+  filePath: string;
+  fileType: string;
+  fileSize: number;
+  createdAt: Date;
+}
+
+export interface CreatePropertyAttachmentRequest {
+  propertyId: string;
+  filename: string;
+  originalFilename: string;
+  filePath: string;
+  fileType?: string;
+  fileSize?: number;
 }
 
 // ============================================
