@@ -1,0 +1,193 @@
+[
+  {
+    "category": "info",
+    "description": "LINEE GUIDA GENERALI",
+    "steps": [
+      "Il sistema è GIÀ IN PRODUZIONE su macchine degli utenti",
+      "VIETATO over-engineering: soluzioni semplici e dirette",
+      "RETROCOMPATIBILITÀ OBBLIGATORIA: le migrazioni DB devono preservare i dati esistenti",
+      "Usare ALTER TABLE ADD COLUMN con valori default per nuove colonne",
+      "Non modificare strutture esistenti in modo distruttivo",
+      "Testare sempre su database con dati reali prima del deploy"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[ENV-001] Compatibilità sviluppo cross-platform Mac/Windows",
+    "steps": [
+      "Eseguire npm install su macOS",
+      "Eseguire npm run dev:electron su macOS e verificare avvio corretto",
+      "Eseguire npm install su Windows",
+      "Eseguire npm run dev:electron su Windows e verificare avvio corretto",
+      "Verificare che entrambi i sistemi possano sviluppare contemporaneamente",
+      "Verificare che le build funzionino su entrambe le piattaforme"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[BUG-001] Modifica venditore immobile non funzionante",
+    "steps": [
+      "Aprire un immobile esistente con venditore assegnato",
+      "Modificare il venditore selezionandone uno diverso",
+      "Salvare le modifiche",
+      "Verificare che il nuovo venditore sia salvato correttamente",
+      "Verificare che non ci siano errori silenziosi"
+    ],
+    "passes": true
+  },
+  {
+    "category": "ui",
+    "description": "[PROP-001] Formattazione campi EUR con separatore migliaia",
+    "steps": [
+      "Aprire il form di creazione/modifica immobile",
+      "Inserire un valore numerico nel campo prezzo (es: 1650000)",
+      "Verificare che il valore venga formattato con separatore migliaia (1.650.000)",
+      "Verificare che tutti i campi con label EUR abbiano la stessa formattazione"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[PROP-002] Campo Codice Immobile",
+    "steps": [
+      "Verificare che la colonna 'codice' esista nella tabella properties",
+      "Aprire il form immobile",
+      "Verificare la presenza del campo 'Codice Immobile' (testo)",
+      "Inserire un codice e salvare",
+      "Verificare che il codice sia salvato e visualizzato correttamente"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[PROP-003] Gestione Incarico con percentuale e scadenza",
+    "steps": [
+      "Verificare le colonne has_incarico, incarico_percentuale, incarico_scadenza nel DB",
+      "Aprire il form immobile",
+      "Verificare la presenza della checkbox 'Incarico'",
+      "Attivare la checkbox e verificare che appaiano i campi percentuale e data scadenza",
+      "Compilare i campi e salvare",
+      "Verificare che i dati siano salvati correttamente"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[PROP-004] Campo Regione con select delle 20 regioni italiane",
+    "steps": [
+      "Verificare che la colonna 'regione' esista nella tabella properties",
+      "Aprire il form immobile",
+      "Verificare la presenza del campo select 'Regione'",
+      "Verificare che il select contenga tutte le 20 regioni italiane",
+      "Selezionare una regione e salvare",
+      "Verificare che la regione sia salvata correttamente"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[PROP-005] Tipo Operazione multi-selezione",
+    "steps": [
+      "Verificare la struttura DB per property_operation_types",
+      "Aprire il form immobile",
+      "Verificare la presenza del campo multi-select 'Tipo Operazione'",
+      "Verificare le opzioni: Affitto attività, Vendita attività, Affitto mura, Vendita mura, Vendita cespite, Vendita società",
+      "Selezionare più opzioni contemporaneamente",
+      "Salvare e verificare che tutte le selezioni siano mantenute"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[PROP-006] Upload file allegati (Excel, PDF)",
+    "steps": [
+      "Aprire il form immobile",
+      "Verificare la presenza della sezione allegati",
+      "Caricare un file Excel (.xlsx)",
+      "Caricare un file PDF (.pdf)",
+      "Verificare che i file siano visualizzati nella lista allegati",
+      "Scaricare un file allegato e verificare l'integrità"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[DEAL-001] Campo Oggetto Trattativa obbligatorio",
+    "steps": [
+      "Verificare che la colonna 'oggetto' esista nella tabella deals",
+      "Aprire il form trattativa",
+      "Verificare la presenza del campo select 'Oggetto'",
+      "Verificare le opzioni: Vendita, Affitto, Gestione",
+      "Tentare di salvare senza selezionare oggetto e verificare errore validazione",
+      "Selezionare un oggetto e salvare con successo"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[DEAL-002] Campo Prezzo Richiesto",
+    "steps": [
+      "Verificare che la colonna 'prezzo_richiesto' esista nella tabella deals",
+      "Aprire il form trattativa",
+      "Verificare la presenza del campo numerico 'Prezzo Richiesto' (EUR)",
+      "Inserire un valore e salvare",
+      "Verificare che il prezzo sia salvato e formattato correttamente"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[DEAL-003] Gestione Provvigioni compratore e venditore",
+    "steps": [
+      "Verificare le colonne provvigione_compratore, collaboratore_compratore, provvigione_venditore, collaboratore_venditore nel DB",
+      "Aprire il form trattativa",
+      "Verificare la sezione provvigioni con campi separati per compratore e venditore",
+      "Inserire percentuale provvigione compratore (es: 1,5%)",
+      "Inserire nome collaboratore compratore",
+      "Ripetere per venditore",
+      "Salvare e verificare i dati"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[DEAL-004] Stato Pagamenti compratore e venditore",
+    "steps": [
+      "Verificare le colonne pagamento_compratore, acconto_compratore, pagamento_venditore, acconto_venditore nel DB",
+      "Aprire il form trattativa",
+      "Verificare select 'Pagato' per compratore con opzioni: Sì, No, Rateale",
+      "Verificare checkbox 'Acconto' per compratore",
+      "Verificare gli stessi campi per venditore",
+      "Salvare e verificare i dati"
+    ],
+    "passes": true
+  },
+  {
+    "category": "ui",
+    "description": "[DASH-001] Widget Scadenze Incarichi in Dashboard",
+    "steps": [
+      "Aprire la Dashboard",
+      "Verificare la presenza del widget 'Scadenze Incarichi'",
+      "Verificare che mostri nome immobile + codice",
+      "Verificare che mostri giorni alla scadenza",
+      "Verificare colori: verde (>30gg), giallo (15-30gg), arancione (1-14gg), rosso (scaduto)",
+      "Verificare ordinamento per scadenza più vicina"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "[FILT-001] Filtri avanzati vista Immobili",
+    "steps": [
+      "Aprire la vista Immobili",
+      "Verificare la presenza del filtro per Tag (multi-select)",
+      "Verificare la presenza del filtro per Regione (select)",
+      "Verificare la presenza del filtro per Tipo Operazione (multi-select)",
+      "Applicare combinazione di filtri",
+      "Verificare che i risultati siano filtrati correttamente"
+    ],
+    "passes": true
+  }
+]

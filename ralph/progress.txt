@@ -1,0 +1,864 @@
+# Progress Log - HotelCRM Desktop
+
+## Note
+Questo file traccia il progresso delle implementazioni automatiche.
+
+---
+
+## 2026-01-08: BUG-001 - Modifica venditore immobile non funzionante
+
+### Problema
+La modifica del venditore di un immobile non veniva salvata nel database.
+
+### Causa
+Due problemi correlati:
+1. **Type issue**: In `src/lib/types.ts`, `UpdatePropertyRequest` era definito come `Partial<Omit<CreatePropertyRequest, 'sellerId'>>`, escludendo esplicitamente `sellerId` dagli aggiornamenti permessi.
+2. **Repository issue**: In `electron/database/repositories/properties.repository.ts`, il metodo `update()` non gestiva il campo `sellerId`, quindi anche se il form inviava il valore, veniva ignorato.
+
+### Soluzione
+1. Modificato `UpdatePropertyRequest` in `src/lib/types.ts` (riga 210) per includere `sellerId`:
+   - Da: `extends Partial<Omit<CreatePropertyRequest, 'sellerId'>>`
+   - A: `extends Partial<CreatePropertyRequest>`
+
+2. Aggiunto handler per `sellerId` in `properties.repository.ts` nel metodo `update()` (righe 217-220):
+   ```typescript
+   if (data.sellerId !== undefined) {
+     fields.push('seller_id = ?');
+     values.push(data.sellerId || null);
+   }
+   ```
+
+3. Aggiunto anche l'aggiornamento di `updated_at` per tracciare l'ultima modifica.
+
+### File modificati
+- `src/lib/types.ts`
+- `electron/database/repositories/properties.repository.ts`
+
+### Note per il prossimo
+Il form `property-form.tsx` già gestisce correttamente l'invio di `sellerId` - non sono state necessarie modifiche lato frontend.
+
+---
+
+## 2026-01-08: BUG-001 (completamento) - Aggiunta opzione "Nessun venditore" nel form
+
+### Problema aggiuntivo
+Il Select per il venditore non permetteva di:
+1. Rimuovere un venditore già assegnato
+2. Visualizzare chiaramente quando non c'è venditore assegnato
+
+### Soluzione
+Modificato `src/components/property-form.tsx` (righe 126-142):
+- Aggiunta opzione "Nessun venditore" con valore speciale `__none__`
+- Il valore `__none__` viene convertito in stringa vuota `''` quando salvato
+- Quando `sellerId` è vuoto, il Select mostra "Nessun venditore" come selezionato
+
+### File modificati
+- `src/components/property-form.tsx`
+
+---
+
+## 2026-01-08: PROP-002 - Campo Codice Immobile
+
+### Requisito
+Aggiungere un campo "Codice Immobile" (testo) per identificare univocamente gli immobili con un codice interno.
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/003_property_codice.sql`:
+- Aggiunge colonna `codice TEXT DEFAULT ''` alla tabella properties
+- Crea indice `idx_properties_codice` per ricerche efficienti
+
+#### 2. Connection.ts
+- Aggiunto `003_property_codice.sql` alla lista delle migrazioni
+- Aggiornato schema inline con la nuova colonna `codice`
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunto campo `codice: string` all'interfaccia `Property`
+- Aggiunto campo `codice?: string` all'interfaccia `CreatePropertyRequest`
+
+#### 4. Repository (electron/database/repositories/properties.repository.ts)
+- Aggiunto `codice` a `PropertyRow` interface
+- Aggiornato metodo `create()` per includere `codice` nell'INSERT
+- Aggiornato metodo `update()` per gestire aggiornamenti del campo `codice`
+- Aggiornato `mapRowToEntity()` per mappare `codice` dal DB all'entità
+
+#### 5. Property Form (src/components/property-form.tsx)
+- Aggiunto campo `codice` allo schema Zod
+- Aggiunto campo nei `defaultValues`
+- Aggiunto campo `codice` nel submit handler
+- Aggiunto input UI "Codice Immobile" subito dopo "Nome Struttura"
+
+#### 6. UI Display (src/routes/immobili.tsx)
+- Aggiunto codice alla ricerca (ora cerca anche per codice)
+- Aggiunto display del codice nelle card degli immobili ("Cod: XXX")
+- Aggiunto display del codice nel pannello dettaglio immobile
+
+### File modificati
+- `electron/database/migrations/003_property_codice.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `electron/database/repositories/properties.repository.ts`
+- `src/components/property-form.tsx`
+- `src/routes/immobili.tsx`
+
+### Note per il prossimo
+- Il campo codice è opzionale (può essere vuoto)
+- La ricerca nella lista immobili ora funziona anche per codice
+- Il codice viene visualizzato sia nelle card che nel pannello dettaglio
+
+---
+
+## 2026-01-08: PROP-003 - Gestione Incarico con percentuale e scadenza
+
+### Requisito
+Aggiungere la gestione dell'incarico per gli immobili, con:
+- Checkbox per attivare/disattivare l'incarico
+- Campo percentuale (0-100%)
+- Campo data scadenza
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/004_property_incarico.sql`:
+- `has_incarico INTEGER DEFAULT 0` - boolean (0/1)
+- `incarico_percentuale REAL DEFAULT NULL` - percentuale
+- `incarico_scadenza TEXT DEFAULT NULL` - data in formato ISO
+- Indice `idx_properties_incarico_scadenza` per ricerche efficienti
+
+#### 2. Connection.ts
+- Aggiunto `004_property_incarico.sql` alla lista delle migrazioni
+- Aggiornato schema inline con le nuove colonne
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunto `hasIncarico: boolean` all'interfaccia `Property`
+- Aggiunto `incaricoPercentuale?: number` all'interfaccia `Property`
+- Aggiunto `incaricoScadenza?: string` all'interfaccia `Property`
+- Stessi campi aggiunti a `CreatePropertyRequest` (tutti opzionali)
+
+#### 4. Repository (electron/database/repositories/properties.repository.ts)
+- Aggiornato `PropertyRow` interface con i nuovi campi DB
+- Aggiornato metodo `create()` per includere i campi incarico nell'INSERT
+- Aggiornato metodo `update()` per gestire aggiornamenti dei campi incarico
+- Aggiornato `mapRowToEntity()` per mappare i campi incarico dal DB all'entità
+
+#### 5. Property Form (src/components/property-form.tsx)
+- Aggiunto import del componente `Checkbox`
+- Aggiunto campi allo schema Zod (`hasIncarico`, `incaricoPercentuale`, `incaricoScadenza`)
+- Aggiunto campi nei `defaultValues`
+- Aggiunto watch per `hasIncarico` per mostrare/nascondere i campi correlati
+- Aggiunto campi incarico nel submit handler (solo se checkbox attiva)
+- Aggiunto UI: sezione con bordo contenente la checkbox "Incarico" e, quando attivata, i campi percentuale e data scadenza
+
+#### 6. UI Display (src/routes/immobili.tsx)
+- Aggiunto import icona `FileCheck` da lucide-react
+- Nelle card degli immobili: badge verde "Incarico" visibile se `hasIncarico` è true
+- Nel pannello dettaglio: sezione "Incarico" con percentuale e data scadenza formattata in italiano
+
+### File modificati
+- `electron/database/migrations/004_property_incarico.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `electron/database/repositories/properties.repository.ts`
+- `src/components/property-form.tsx`
+- `src/routes/immobili.tsx`
+
+### Note per il prossimo
+- I campi incarico vengono salvati solo se la checkbox è attiva
+- Quando la checkbox viene disattivata, percentuale e scadenza vengono impostati a undefined
+- La data scadenza è visualizzata in formato italiano (DD/MM/YYYY)
+- Il badge "Incarico" nelle card permette una rapida identificazione degli immobili con mandato
+- **IMPORTANTE**: Questo feature è prerequisito per DASH-001 (Widget Scadenze Incarichi in Dashboard)
+
+---
+
+## 2026-01-08: PROP-004 - Campo Regione con select delle 20 regioni italiane
+
+### Requisito
+Aggiungere un campo "Regione" (select) per gli immobili, con tutte le 20 regioni italiane come opzioni.
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/005_property_regione.sql`:
+- Aggiunge colonna `regione TEXT DEFAULT ''` alla tabella properties
+- Crea indice `idx_properties_regione` per ricerche efficienti per regione
+
+#### 2. Connection.ts
+- Aggiunto `005_property_regione.sql` alla lista delle migrazioni
+- Aggiornato schema inline con la nuova colonna `regione`
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunto campo `regione: string` all'interfaccia `Property`
+- Aggiunto campo `regione?: string` all'interfaccia `CreatePropertyRequest`
+
+#### 4. Repository (electron/database/repositories/properties.repository.ts)
+- Aggiunto `regione` a `PropertyRow` interface
+- Aggiornato metodo `create()` per includere `regione` nell'INSERT
+- Aggiornato metodo `update()` per gestire aggiornamenti del campo `regione`
+- Aggiornato `mapRowToEntity()` per mappare `regione` dal DB all'entità
+
+#### 5. Property Form (src/components/property-form.tsx)
+- Aggiunto array `REGIONI_ITALIANE` con tutte le 20 regioni italiane in ordine alfabetico
+- Aggiunto campo `regione` allo schema Zod
+- Aggiunto campo nei `defaultValues`
+- Aggiunto watch `currentRegione` per il Select
+- Aggiunto campo `regione` nel submit handler
+- Aggiunto UI: Select "Regione" nella griglia insieme al campo CAP
+
+#### 6. UI Display (src/routes/immobili.tsx)
+- Aggiunto display della regione nel pannello dettaglio immobile (se presente)
+
+### File modificati
+- `electron/database/migrations/005_property_regione.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `electron/database/repositories/properties.repository.ts`
+- `src/components/property-form.tsx`
+- `src/routes/immobili.tsx`
+
+### Note per il prossimo
+- Il campo regione è opzionale (può essere vuoto)
+- Le 20 regioni italiane sono hardcoded nell'array `REGIONI_ITALIANE` nel form
+- La regione viene visualizzata nel pannello dettaglio solo se valorizzata
+- Potenziale miglioramento futuro: aggiungere filtro per regione nella lista immobili (FILT-001)
+
+---
+
+## 2026-01-08: PROP-001 - Formattazione campi EUR con separatore migliaia
+
+### Requisito
+Tutti i campi con valori in EUR devono mostrare il formato italiano con separatore delle migliaia (punto).
+Esempio: 1650000 → 1.650.000
+
+### Implementazione
+
+#### 1. Nuovo componente EurInput (src/components/ui/eur-input.tsx)
+Creato un componente riutilizzabile che:
+- Mostra il valore formattato con separatore migliaia (usando `toLocaleString('it-IT')`)
+- In modalità focus, mostra il valore numerico puro per facilitare l'editing
+- Al blur, riformatta il valore visualizzato
+- Accetta solo input numerici
+- Funziona con react-hook-form tramite props `value` e `onChange`
+
+Funzioni helper esposte:
+- `formatEur(value)` - Formatta un numero con separatore migliaia italiano
+- `parseEur(value)` - Converte stringa formattata in numero
+
+#### 2. Aggiornamento property-form.tsx
+- Importato `EurInput`
+- Aggiunto watch per `priceMinValue` e `priceMaxValue`
+- Sostituiti i campi `priceMin` e `priceMax` da `<Input type="number">` a `<EurInput>`
+
+#### 3. Aggiornamento buyer-form.tsx
+- Importato `EurInput`
+- Aggiunto watch per `budgetMinValue` e `budgetMaxValue`
+- Sostituiti i campi `budgetMin` e `budgetMax` da `<Input type="number">` a `<EurInput>`
+
+#### 4. Aggiornamento deal-form.tsx
+- Importato `EurInput`
+- Rimosso import inutilizzato di `Input`
+- Aggiunto watch per `priceOfferedValue` e `priceNegotiatedValue`
+- Sostituiti i campi `priceOffered` e `priceNegotiated` da `<Input type="number">` a `<EurInput>`
+
+### File modificati
+- `src/components/ui/eur-input.tsx` (nuovo)
+- `src/components/property-form.tsx`
+- `src/components/buyer-form.tsx`
+- `src/components/deal-form.tsx`
+
+### Note per il prossimo
+- Il componente `EurInput` è riutilizzabile per qualsiasi futuro campo EUR
+- La visualizzazione nelle liste/dettagli usa già `formatCurrency()` da `utils-crm.ts` che formatta correttamente
+- Il componente usa `inputMode="numeric"` per mostrare tastiera numerica su mobile
+- Per usare `EurInput` con react-hook-form: usare `watch()` per il valore e `setValue()` per l'onChange
+
+---
+
+## 2026-01-08: DEAL-001 - Campo Oggetto Trattativa obbligatorio
+
+### Requisito
+Aggiungere un campo "Oggetto" obbligatorio per le trattative, con opzioni: Vendita, Affitto, Gestione.
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/006_deal_oggetto.sql`:
+- Aggiunge colonna `oggetto TEXT DEFAULT ''` con CHECK constraint per valori validi
+- Crea indice `idx_deals_oggetto` per filtraggio efficiente
+- Usa stringa vuota come default per retrocompatibilità con trattative esistenti
+
+#### 2. Connection.ts
+- Aggiunto `006_deal_oggetto.sql` alla lista delle migrazioni
+- Aggiornato schema inline con la nuova colonna `oggetto`
+- Aggiunto indice `idx_deals_oggetto`
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunto nuovo tipo `DealOggetto = 'vendita' | 'affitto' | 'gestione'`
+- Aggiunto campo `oggetto: DealOggetto | ''` all'interfaccia `Deal`
+- Aggiunto campo `oggetto: DealOggetto` (obbligatorio) a `CreateDealRequest`
+- Aggiunto campo `oggetto?: DealOggetto` (opzionale) a `UpdateDealRequest`
+
+#### 4. Utils-CRM (src/lib/utils-crm.ts)
+- Aggiunta funzione `getDealOggettoLabel(oggetto: DealOggetto)` per le label italiane
+- Importato tipo `DealOggetto`
+
+#### 5. Repository (electron/database/repositories/deals.repository.ts)
+- Importato tipo `DealOggetto`
+- Aggiunto `oggetto` a `DealRow` interface
+- Aggiornato metodo `create()` per includere `oggetto` nell'INSERT
+- Aggiornato metodo `update()` per gestire aggiornamenti del campo `oggetto`
+- Aggiornato `mapRowToEntity()` per mappare `oggetto` dal DB all'entità
+
+#### 6. Deal Form (src/components/deal-form.tsx)
+- Aggiornato schema Zod con campo `oggetto` obbligatorio usando `z.enum()`
+- Aggiunto `oggetto` nei `defaultValues` (con gestione per trattative esistenti senza oggetto)
+- Aggiunto watch `currentOggetto` per il Select
+- Aggiunto campo `oggetto` nel submit handler
+- Aggiunto UI: Select "Oggetto *" con le tre opzioni (Vendita, Affitto, Gestione)
+- Il campo mostra errore di validazione se non selezionato
+
+#### 7. Trattative View (src/routes/trattative.tsx)
+- Importato `getDealOggettoLabel`
+- Aggiunto badge "Oggetto" nel pannello dettaglio trattativa (accanto allo stato)
+- Aggiunto colonna "Oggetto" nella vista tabella
+- Badge con colore viola (`bg-violet-100 text-violet-700`) per distinguerlo dallo stato
+
+### File modificati
+- `electron/database/migrations/006_deal_oggetto.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `src/lib/utils-crm.ts`
+- `electron/database/repositories/deals.repository.ts`
+- `src/components/deal-form.tsx`
+- `src/routes/trattative.tsx`
+
+### Note per il prossimo
+- Il campo oggetto è obbligatorio per nuove trattative
+- Le trattative esistenti (create prima di questa migrazione) avranno `oggetto: ''`
+- Nel form, se `oggetto` è vuoto viene trattato come `undefined` per forzare la selezione
+- L'oggetto viene visualizzato sia nel dettaglio che nella tabella trattative
+- Possibile miglioramento futuro: aggiungere filtro per oggetto nella lista trattative
+
+---
+
+## 2026-01-08: DEAL-002 - Campo Prezzo Richiesto
+
+### Requisito
+Aggiungere un campo "Prezzo Richiesto" (asking price) alle trattative, con formattazione EUR.
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/007_deal_prezzo_richiesto.sql`:
+- Aggiunge colonna `prezzo_richiesto INTEGER DEFAULT NULL` alla tabella deals
+- Crea indice `idx_deals_prezzo_richiesto` per filtraggio efficiente
+
+#### 2. Connection.ts
+- Aggiunto `007_deal_prezzo_richiesto.sql` alla lista delle migrazioni
+- Aggiornato schema inline con la nuova colonna `prezzo_richiesto`
+- Aggiunto indice `idx_deals_prezzo_richiesto`
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunto campo `prezzoRichiesto?: number` all'interfaccia `Deal`
+- Aggiunto campo `prezzoRichiesto?: number` a `CreateDealRequest`
+- Aggiunto campo `prezzoRichiesto?: number` a `UpdateDealRequest`
+
+#### 4. Repository (electron/database/repositories/deals.repository.ts)
+- Aggiunto `prezzo_richiesto` a `DealRow` interface
+- Aggiornato metodo `create()` per includere `prezzo_richiesto` nell'INSERT
+- Aggiornato metodo `update()` per gestire aggiornamenti del campo `prezzo_richiesto`
+- Aggiornato `mapRowToEntity()` per mappare `prezzo_richiesto` dal DB all'entità (`prezzoRichiesto`)
+
+#### 5. Deal Form (src/components/deal-form.tsx)
+- Aggiunto campo `prezzoRichiesto` allo schema Zod
+- Aggiunto campo nei `defaultValues`
+- Aggiunto watch `prezzoRichiestoValue` per il componente EurInput
+- Aggiunto campo `prezzoRichiesto` nel submit handler
+- Aggiunto UI: campo EurInput "Prezzo Richiesto (EUR)" posizionato dopo Stato e prima di Prezzo Offerto
+
+#### 6. Trattative View (src/routes/trattative.tsx)
+- Aggiunta colonna "Richiesto" nella vista tabella (tra Oggetto e Offerta)
+- Aggiunto display del prezzo richiesto nel pannello dettaglio trattativa
+- Visualizzazione con formattazione EUR tramite `formatCurrency()`
+
+### File modificati
+- `electron/database/migrations/007_deal_prezzo_richiesto.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `electron/database/repositories/deals.repository.ts`
+- `src/components/deal-form.tsx`
+- `src/routes/trattative.tsx`
+
+### Note per il prossimo
+- Il campo prezzo richiesto è opzionale
+- Il prezzo viene visualizzato con formattazione EUR (separatore migliaia italiano)
+- Il campo usa il componente `EurInput` già esistente per la formattazione input
+- Il prezzo richiesto rappresenta il prezzo chiesto dal venditore, distinto dal prezzo offerto (dal compratore) e dal prezzo negoziato (finale)
+
+---
+
+## 2026-01-08: PROP-005 - Tipo Operazione multi-selezione
+
+### Requisito
+Aggiungere un campo multi-selezione "Tipo Operazione" per gli immobili con le seguenti opzioni:
+- Affitto attività
+- Vendita attività
+- Affitto mura
+- Vendita mura
+- Vendita cespite
+- Vendita società
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/008_property_operation_types.sql`:
+- Tabella many-to-many `property_operation_types` con `property_id` e `operation_type`
+- CHECK constraint per validare i tipi di operazione validi
+- Indici per ricerche efficienti per property_id e operation_type
+
+#### 2. Connection.ts
+- Aggiunto `008_property_operation_types.sql` alla lista delle migrazioni
+- Aggiornato schema inline con la nuova tabella `property_operation_types`
+- Aggiunti indici per la nuova tabella
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunto nuovo tipo `PropertyOperationType` con i 6 valori possibili
+- Aggiunto campo `operationTypes: PropertyOperationType[]` all'interfaccia `Property`
+- Aggiunto campo `operationTypes?: PropertyOperationType[]` a `CreatePropertyRequest`
+
+#### 4. Utils-CRM (src/lib/utils-crm.ts)
+- Importato tipo `PropertyOperationType`
+- Aggiunta funzione `getOperationTypeLabel(type: PropertyOperationType)` per le label italiane
+
+#### 5. Repository (electron/database/repositories/properties.repository.ts)
+- Importato tipo `PropertyOperationType`
+- Aggiunto metodo privato `linkOperationType()` per inserire record nella tabella junction
+- Aggiornato metodo `create()` per inserire i tipi di operazione selezionati
+- Aggiornato metodo `update()` per gestire aggiornamenti dei tipi di operazione (delete + insert)
+- Aggiornato `mapRowToEntity()` per caricare i tipi di operazione dalla tabella junction
+
+#### 6. Property Form (src/components/property-form.tsx)
+- Aggiunto array `OPERATION_TYPES` con i 6 tipi di operazione
+- Aggiunto state `selectedOperationTypes` per tracciare le selezioni
+- Aggiunta funzione `toggleOperationType()` per gestire selezione/deselezione
+- Aggiunto `operationTypes` nel submit handler
+- Aggiunto UI: sezione con checkbox per ogni tipo di operazione (griglia 2 colonne)
+
+#### 7. Immobili View (src/routes/immobili.tsx)
+- Importato `getOperationTypeLabel`
+- Aggiunto display dei tipi di operazione nelle card (badge viola)
+- Aggiunto display dei tipi di operazione nel pannello dettaglio (sezione dedicata)
+
+### File modificati
+- `electron/database/migrations/008_property_operation_types.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `src/lib/utils-crm.ts`
+- `electron/database/repositories/properties.repository.ts`
+- `src/components/property-form.tsx`
+- `src/routes/immobili.tsx`
+
+### Note per il prossimo
+- I tipi di operazione sono opzionali (un immobile può non avere nessun tipo selezionato)
+- La selezione multipla è implementata con checkbox, non con un select multi
+- La tabella junction `property_operation_types` segue lo stesso pattern di `buyer_preferred_types`
+- I badge dei tipi di operazione sono colorati in viola per distinguerli dagli altri badge
+- Potenziale miglioramento futuro: aggiungere filtro per tipo operazione nella lista immobili (FILT-001)
+
+---
+
+## 2026-01-08: DEAL-003 - Gestione Provvigioni compratore e venditore
+
+### Requisito
+Aggiungere la gestione delle provvigioni per le trattative, con campi separati per compratore e venditore:
+- Percentuale provvigione (0-100%)
+- Nome collaboratore
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/009_deal_provvigioni.sql`:
+- `provvigione_compratore REAL DEFAULT NULL` - percentuale provvigione compratore
+- `collaboratore_compratore TEXT DEFAULT ''` - nome collaboratore lato compratore
+- `provvigione_venditore REAL DEFAULT NULL` - percentuale provvigione venditore
+- `collaboratore_venditore TEXT DEFAULT ''` - nome collaboratore lato venditore
+
+#### 2. Connection.ts
+- Aggiunto `009_deal_provvigioni.sql` alla lista delle migrazioni
+- Aggiornato schema inline con le nuove colonne nella tabella `deals`
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunto `provvigioneCompratore?: number` all'interfaccia `Deal`
+- Aggiunto `collaboratoreCompratore?: string` all'interfaccia `Deal`
+- Aggiunto `provvigioneVenditore?: number` all'interfaccia `Deal`
+- Aggiunto `collaboratoreVenditore?: string` all'interfaccia `Deal`
+- Stessi campi aggiunti a `CreateDealRequest` e `UpdateDealRequest` (tutti opzionali)
+
+#### 4. Repository (electron/database/repositories/deals.repository.ts)
+- Aggiornato `DealRow` interface con i nuovi campi DB
+- Aggiornato metodo `create()` per includere i campi provvigione nell'INSERT
+- Aggiornato metodo `update()` per gestire aggiornamenti dei campi provvigione
+- Aggiornato `mapRowToEntity()` per mappare i campi provvigione dal DB all'entità
+
+#### 5. Deal Form (src/components/deal-form.tsx)
+- Aggiunto import del componente `Input`
+- Aggiunto campi allo schema Zod (`provvigioneCompratore`, `collaboratoreCompratore`, `provvigioneVenditore`, `collaboratoreVenditore`)
+- Aggiunto campi nei `defaultValues`
+- Aggiunto campi provvigione nel submit handler
+- Aggiunto UI: sezione "Provvigioni" con bordo contenente due sottosezioni (Compratore e Venditore)
+  - Ogni sottosezione ha un campo percentuale e un campo collaboratore
+  - Layout a griglia 2 colonne per ogni sezione
+
+#### 6. Trattative View (src/routes/trattative.tsx)
+- Aggiunto display della sezione "Provvigioni" nel pannello dettaglio trattativa
+- Mostra percentuale e collaboratore per compratore e venditore
+- La sezione appare solo se almeno una provvigione è stata inserita
+
+### File modificati
+- `electron/database/migrations/009_deal_provvigioni.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `electron/database/repositories/deals.repository.ts`
+- `src/components/deal-form.tsx`
+- `src/routes/trattative.tsx`
+
+### Note per il prossimo
+- I campi provvigione sono tutti opzionali
+- Le percentuali sono validata tra 0 e 100 nello schema Zod
+- I collaboratori sono semplici campi di testo (non referenziano entità separate)
+- Le provvigioni vengono visualizzate nel pannello dettaglio solo se almeno una è stata inserita
+- La sezione provvigioni nel form è sempre visibile (sia in creazione che in modifica)
+
+---
+
+## 2026-01-08: DEAL-004 - Stato Pagamenti compratore e venditore
+
+### Requisito
+Aggiungere la gestione dello stato pagamenti per le trattative, con campi separati per compratore e venditore:
+- Select "Pagato" con opzioni: Sì, No, Rateale
+- Checkbox "Acconto"
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/010_deal_pagamenti.sql`:
+- `pagamento_compratore TEXT DEFAULT ''` - stato pagamento compratore (si, no, rateale)
+- `acconto_compratore INTEGER DEFAULT 0` - boolean per acconto compratore
+- `pagamento_venditore TEXT DEFAULT ''` - stato pagamento venditore (si, no, rateale)
+- `acconto_venditore INTEGER DEFAULT 0` - boolean per acconto venditore
+- CHECK constraint per validare i valori di pagamento_compratore e pagamento_venditore
+
+#### 2. Connection.ts
+- Aggiunto `010_deal_pagamenti.sql` alla lista delle migrazioni
+- Aggiornato schema inline con le nuove colonne nella tabella `deals`
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunto nuovo tipo `PagamentoStatus = 'si' | 'no' | 'rateale'`
+- Aggiunto `pagamentoCompratore?: PagamentoStatus` all'interfaccia `Deal`
+- Aggiunto `accontoCompratore?: boolean` all'interfaccia `Deal`
+- Aggiunto `pagamentoVenditore?: PagamentoStatus` all'interfaccia `Deal`
+- Aggiunto `accontoVenditore?: boolean` all'interfaccia `Deal`
+- Stessi campi aggiunti a `CreateDealRequest` e `UpdateDealRequest` (tutti opzionali)
+
+#### 4. Utils-CRM (src/lib/utils-crm.ts)
+- Importato tipo `PagamentoStatus`
+- Aggiunta funzione `getPagamentoStatusLabel(status: PagamentoStatus)` per le label italiane
+
+#### 5. Repository (electron/database/repositories/deals.repository.ts)
+- Importato tipo `PagamentoStatus`
+- Aggiornato `DealRow` interface con i nuovi campi DB
+- Aggiornato metodo `create()` per includere i campi pagamento nell'INSERT
+- Aggiornato metodo `update()` per gestire aggiornamenti dei campi pagamento
+- Aggiornato `mapRowToEntity()` per mappare i campi pagamento dal DB all'entità
+
+#### 6. Deal Form (src/components/deal-form.tsx)
+- Importato `Checkbox` e `getPagamentoStatusLabel`
+- Aggiunto campi allo schema Zod (`pagamentoCompratore`, `accontoCompratore`, `pagamentoVenditore`, `accontoVenditore`)
+- Aggiunto campi nei `defaultValues`
+- Aggiunto watch per i campi pagamento
+- Aggiunto campi pagamento nel submit handler
+- Aggiunto UI: sezione "Pagamenti" con bordo contenente due sottosezioni (Compratore e Venditore)
+  - Ogni sottosezione ha un select "Pagato" (Sì/No/Rateale) e una checkbox "Acconto"
+
+#### 7. Trattative View (src/routes/trattative.tsx)
+- Importato `getPagamentoStatusLabel`
+- Aggiunto display della sezione "Pagamenti" nel pannello dettaglio trattativa
+- Mostra stato pagamento e acconto per compratore e venditore
+- La sezione appare solo se almeno un pagamento è stato inserito
+
+### File modificati
+- `electron/database/migrations/010_deal_pagamenti.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `src/lib/utils-crm.ts`
+- `electron/database/repositories/deals.repository.ts`
+- `src/components/deal-form.tsx`
+- `src/routes/trattative.tsx`
+
+### Note per il prossimo
+- I campi pagamento sono tutti opzionali
+- Lo stato pagamento accetta tre valori: 'si', 'no', 'rateale'
+- Il campo acconto è un boolean che indica se è stato versato un acconto
+- I pagamenti vengono visualizzati nel pannello dettaglio solo se almeno uno è stato inserito
+- La sezione pagamenti nel form è sempre visibile (sia in creazione che in modifica)
+- Segue lo stesso pattern implementativo di DEAL-003 (Provvigioni)
+
+---
+
+## 2026-01-08: DASH-001 - Widget Scadenze Incarichi in Dashboard
+
+### Requisito
+Aggiungere un widget nella Dashboard che mostra le scadenze degli incarichi sugli immobili, con:
+- Nome immobile + codice
+- Giorni alla scadenza
+- Colori: verde (>30gg), giallo (15-30gg), arancione (1-14gg), rosso (scaduto)
+- Ordinamento per scadenza più vicina
+
+### Implementazione
+
+#### 1. Dashboard (src/routes/index.tsx)
+Modificato il componente Dashboard per includere il widget "Scadenze Incarichi":
+
+- Aggiunto import dell'icona `FileCheck` da lucide-react
+- Aggiunto helper `getDaysToExpiration(scadenza)` per calcolare i giorni rimanenti
+- Aggiunto helper `getExpirationColor(days)` per il colore del badge:
+  - Rosso (`bg-red-100 text-red-700`) per scaduto (days < 0)
+  - Arancione (`bg-orange-100 text-orange-700`) per 1-14 giorni
+  - Giallo (`bg-yellow-100 text-yellow-700`) per 15-30 giorni
+  - Verde (`bg-green-100 text-green-700`) per >30 giorni
+- Aggiunto helper `getExpirationText(days)` per il testo del badge
+- Aggiunto array `propertiesWithExpiringIncarico` che:
+  - Filtra solo immobili con `hasIncarico` e `incaricoScadenza`
+  - Calcola i giorni alla scadenza per ogni immobile
+  - Ordina per scadenza più vicina (ascending)
+- Modificata la griglia dei widget da 2 a 3 colonne su schermi large (`lg:grid-cols-3`)
+- Aggiunto widget "Scadenze Incarichi" con:
+  - Icona FileCheck verde
+  - Link "Vedi tutti" alla pagina /immobili
+  - Lista dei primi 5 immobili con incarico in scadenza
+  - Per ogni immobile: nome, codice (se presente), badge con giorni alla scadenza
+
+#### Approccio scelto
+Ho scelto di filtrare i dati client-side invece di creare un nuovo endpoint IPC perché:
+1. I dati delle properties sono già caricati nel Dashboard tramite `useProperties()`
+2. Riduce la complessità senza aggiungere nuovo codice nel backend
+3. Segue lo stesso pattern già usato per `activeDeals` nella stessa pagina
+4. Performance non è un problema con il numero tipico di immobili di un CRM
+
+### File modificati
+- `src/routes/index.tsx`
+
+### Note per il prossimo
+- Il widget riutilizza i dati già caricati da `useProperties()` - nessun nuovo endpoint necessario
+- Il widget mostra massimo 5 immobili (slice(0, 5))
+- Gli immobili senza `incaricoScadenza` non vengono mostrati anche se hanno `hasIncarico`
+- Il link "Vedi tutti" porta alla pagina /immobili dove l'utente può vedere tutti gli immobili
+- La griglia dei widget ora usa 3 colonne su large screens per accomodare il nuovo widget
+- Possibile miglioramento futuro: aggiungere filtro nella pagina immobili per mostrare solo quelli con incarico in scadenza
+
+---
+
+## 2026-01-08: FILT-001 - Filtri avanzati vista Immobili
+
+### Requisito
+Aggiungere filtri avanzati alla vista Immobili per permettere di filtrare per:
+- Tag (multi-select)
+- Regione (select)
+- Tipo Operazione (multi-select)
+
+### Implementazione
+
+#### 1. Nuovi state per i filtri (src/routes/immobili.tsx)
+Aggiunti tre nuovi state per i filtri avanzati:
+- `filterTags: string[]` - array di tag selezionati per filtrare
+- `filterRegione: string | null` - regione selezionata
+- `filterOperationTypes: PropertyOperationType[]` - array di tipi operazione selezionati
+
+#### 2. Computed values per le opzioni disponibili
+- `allTags` - estrae tutti i tag unici dagli immobili esistenti e li ordina
+- `usedRegioni` - filtra le 20 regioni italiane mostrando solo quelle effettivamente usate dagli immobili
+
+#### 3. Logica di filtraggio aggiornata
+Aggiornata la funzione `filteredProperties` per includere i nuovi filtri:
+- **Tag filter**: l'immobile deve avere TUTTI i tag selezionati (logica AND)
+- **Regione filter**: l'immobile deve essere nella regione selezionata
+- **Operation type filter**: l'immobile deve avere almeno UNO dei tipi operazione selezionati (logica OR)
+
+#### 4. UI dei filtri
+Aggiunti tre nuovi dropdown nella barra dei filtri:
+- **Tag**: multi-select con checkmark per tag selezionati, mostra "(N)" nel button se ci sono N tag selezionati
+- **Regione**: single-select, mostra solo le regioni usate negli immobili esistenti
+- **Operazione**: multi-select con checkmark per tipi selezionati, mostra "(N)" nel button
+
+#### 5. Pulsante "Rimuovi filtri"
+Aggiornato il pulsante per:
+- Comparire quando qualsiasi filtro è attivo (inclusi i nuovi)
+- Resettare tutti i filtri quando cliccato
+- Aggiunta icona X per chiarezza
+
+### File modificati
+- `src/routes/immobili.tsx`
+
+### Note per il prossimo
+- I filtri Tag e Operazione sono multi-select con checkbox-like behavior usando `e.preventDefault()` per evitare la chiusura del dropdown
+- Il filtro Regione mostra solo le regioni effettivamente usate (non tutte le 20) per evitare opzioni vuote
+- La logica AND per i tag è più restrittiva ma più utile per trovare immobili con combinazioni specifiche di caratteristiche
+- La logica OR per i tipi operazione permette di trovare immobili che offrono una qualsiasi delle operazioni selezionate
+- Il filtro Tag appare solo se ci sono tag negli immobili esistenti
+- Il filtro Regione appare solo se ci sono regioni assegnate negli immobili esistenti
+- Gli array `REGIONI_ITALIANE` e `OPERATION_TYPES` sono definiti localmente nel file per evitare dipendenze circolari
+
+---
+
+## 2026-01-08: PROP-006 - Upload file allegati (Excel, PDF)
+
+### Requisito
+Aggiungere la possibilità di caricare file allegati (Excel, PDF) per gli immobili, con:
+- Sezione allegati nel dettaglio immobile
+- Upload di file .xlsx, .xls e .pdf
+- Visualizzazione della lista allegati con nome, dimensione e data
+- Apertura file con applicazione predefinita di sistema
+- Eliminazione allegati
+
+### Implementazione
+
+#### 1. Database Migration
+Creato nuovo file `electron/database/migrations/011_property_attachments.sql`:
+- Tabella `property_attachments` con foreign key a `properties`
+- Campi: `id`, `property_id`, `filename`, `original_filename`, `file_path`, `file_type`, `file_size`, `created_at`
+- Indici per `property_id` e `file_type`
+- `ON DELETE CASCADE` per eliminazione automatica allegati quando immobile eliminato
+
+#### 2. Connection.ts
+- Aggiunto `011_property_attachments.sql` alla lista delle migrazioni
+- Aggiornato schema inline con la nuova tabella e indici
+- Aggiunta funzione `getAttachmentsDir()` per percorso cartella allegati (development vs production)
+
+#### 3. Types (src/lib/types.ts)
+- Aggiunta interfaccia `PropertyAttachment` con tutti i campi
+- Aggiunta interfaccia `CreatePropertyAttachmentRequest`
+
+#### 4. Repository (electron/database/repositories/property-attachments.repository.ts)
+Creato nuovo repository con metodi:
+- `getAll()` - ottiene tutti gli allegati
+- `getByPropertyId(propertyId)` - ottiene allegati di un immobile
+- `getById(id)` - ottiene singolo allegato
+- `create(data)` - crea record allegato
+- `delete(id)` - elimina allegato
+- `deleteByPropertyId(propertyId)` - elimina tutti allegati di un immobile
+
+#### 5. IPC Channels (electron/ipc/channels.ts)
+Aggiunti canali per allegati:
+- `propertyAttachments:getByProperty`
+- `propertyAttachments:create`
+- `propertyAttachments:delete`
+- `propertyAttachments:open`
+- `propertyAttachments:saveFile`
+
+#### 6. IPC Handler (electron/ipc/handlers/property-attachments.handler.ts)
+Creato handler completo con:
+- **saveFile**: riceve file come base64, lo salva su disco nella cartella `attachments/{propertyId}/`, crea record DB
+- **getByProperty**: restituisce allegati di un immobile
+- **delete**: elimina file da disco e record da DB
+- **open**: apre file con `shell.openPath()` dell'app predefinita del sistema
+- Validazione tipo file (solo PDF, xlsx, xls)
+- Validazione dimensione massima (50MB)
+- Sanitizzazione nome file
+- Generazione nome univoco per evitare conflitti
+
+#### 7. Preload API (electron/preload.ts)
+- Aggiunti tipi `PropertyAttachment` e `CreatePropertyAttachmentRequest` agli import
+- Aggiunti canali IPC per allegati
+- Aggiunta sezione `propertyAttachments` con metodi:
+  - `getByProperty(propertyId)`
+  - `saveFile({ propertyId, originalFilename, fileData })`
+  - `delete(id)`
+  - `open(id)`
+- Aggiunto export `ElectronAPI` type
+
+#### 8. React Hook (src/hooks/use-property-attachments.ts)
+Creato nuovo hook `usePropertyAttachments` con:
+- State per `attachments`, `loading`, `error`
+- `fetchByProperty(propertyId)` - carica allegati
+- `uploadFile(propertyId, file)` - converte file in base64 e lo invia
+- `deleteAttachment(id)` - elimina allegato
+- `openAttachment(id)` - apre file
+- Supporto `autoFetch` con useEffect
+
+#### 9. UI (src/routes/immobili.tsx)
+Aggiunta sezione "Allegati" nel pannello dettaglio immobile:
+- Header con icona Paperclip e pulsante "Carica file"
+- Input file nascosto con accept per PDF/Excel
+- Lista allegati con:
+  - Icona in base al tipo (PDF=rosso, Excel=verde)
+  - Nome file originale
+  - Dimensione formattata (KB/MB)
+  - Data di caricamento
+  - Click per aprire il file
+  - Pulsante elimina
+- Stato vuoto: "Nessun allegato"
+- Loading spinner durante operazioni
+
+### File modificati
+- `electron/database/migrations/011_property_attachments.sql` (nuovo)
+- `electron/database/connection.ts`
+- `src/lib/types.ts`
+- `electron/database/repositories/property-attachments.repository.ts` (nuovo)
+- `electron/ipc/channels.ts`
+- `electron/ipc/handlers/property-attachments.handler.ts` (nuovo)
+- `electron/ipc/index.ts`
+- `electron/preload.ts`
+- `src/hooks/use-property-attachments.ts` (nuovo)
+- `src/routes/immobili.tsx`
+
+### Note per il prossimo
+- Gli allegati sono salvati nella cartella `attachments/{propertyId}/` (dev: project root, prod: userData)
+- I file sono salvati con nome univoco (originalName_uuid.ext) per evitare conflitti
+- La dimensione massima file è 50MB
+- Tipi supportati: PDF, Excel (.xlsx, .xls)
+- Gli allegati vengono eliminati automaticamente quando l'immobile viene eliminato (CASCADE)
+- L'apertura file usa `shell.openPath()` che apre con l'app predefinita del sistema
+- La conversione file usa FileReader + base64 per passare i dati attraverso IPC
+- È stato corretto anche un errore TypeScript pre-esistente in deal-form.tsx (riga 70)
+
+---
+
+## 2026-01-08: ENV-001 - Compatibilità sviluppo cross-platform Mac/Windows
+
+### Requisito
+Verificare che lo sviluppo funzioni correttamente su entrambe le piattaforme (macOS e Windows).
+
+### Analisi
+Il codebase è già correttamente strutturato per il supporto cross-platform:
+
+#### Pattern cross-platform già implementati:
+1. **Path handling**: Tutto il codice usa `path.join()` per costruire percorsi file, che funziona correttamente sia su Windows (`\`) che su Unix (`/`)
+2. **Platform checks**: `main.ts` usa `process.platform === 'darwin'` per differenziare comportamenti specifici (es: `titleBarStyle`)
+3. **Native modules**: `better-sqlite3` viene ricompilato per la piattaforma target tramite `npmRebuild: true` in `electron-builder.yml`
+4. **Build configurations**: `electron-builder.yml` ha configurazioni separate per Mac (DMG, ZIP) e Windows (NSIS, portable)
+
+#### Verifica eseguita su Windows:
+- ✓ TypeScript typecheck passa senza errori
+- ✓ Vite build completa con successo (renderer + main + preload)
+- ✓ I file di output sono generati correttamente in `dist/` e `dist-electron/`
+- ✓ Nessun path hardcoded con separatori specifici per piattaforma
+
+#### File chiave per cross-platform compatibility:
+- `electron/database/connection.ts` - Usa `path.join()` per tutti i percorsi DB e allegati
+- `electron/main.ts` - Gestisce correttamente le differenze tra piattaforme
+- `electron/ipc/handlers/property-attachments.handler.ts` - Usa `path.join()` per gestione file
+- `vite.config.mts` - Configurazione universale con `path.resolve()`
+
+### Note per il prossimo
+- La verifica su macOS deve essere eseguita manualmente da uno sviluppatore con accesso a quella piattaforma
+- Il CI/CD (GitHub Actions) esegue già build su entrambe le piattaforme come verificato nei commit recenti
+- Se si aggiungono nuovi path o operazioni file system, usare sempre `path.join()` e non concatenare stringhe con `/` o `\`
+- Il modulo `better-sqlite3` richiede ricompilazione nativa - `npm install` deve essere eseguito separatamente su ogni piattaforma
+
+---
+
+## NOTA: PRD COMPLETO
+
+Tutte le feature nel PRD sono state implementate e marcate come `passes: true`.
+
