@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { EurInput } from '@/components/ui/eur-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
@@ -66,6 +67,8 @@ export function BuyerForm({ onClose, onSubmit, initialData }: BuyerFormProps) {
   });
 
   const currentLevel = watch('level');
+  const budgetMinValue = watch('budgetMin');
+  const budgetMaxValue = watch('budgetMax');
 
   const handleFormSubmit = async (data: BuyerFormData) => {
     setIsSubmitting(true);
@@ -123,19 +126,19 @@ export function BuyerForm({ onClose, onSubmit, initialData }: BuyerFormProps) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="budgetMin">Budget Minimo (EUR)</Label>
-            <Input
+            <EurInput
               id="budgetMin"
-              type="number"
-              {...register('budgetMin')}
+              value={budgetMinValue}
+              onChange={(val) => setValue('budgetMin', val ?? 0)}
               placeholder="0"
             />
           </div>
           <div>
             <Label htmlFor="budgetMax">Budget Massimo (EUR)</Label>
-            <Input
+            <EurInput
               id="budgetMax"
-              type="number"
-              {...register('budgetMax')}
+              value={budgetMaxValue}
+              onChange={(val) => setValue('budgetMax', val ?? 0)}
               placeholder="0"
             />
           </div>
