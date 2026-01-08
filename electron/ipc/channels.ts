@@ -44,6 +44,13 @@ export const IPC_CHANNELS = {
   TAGS_CREATE: 'tags:create',
   TAGS_DELETE: 'tags:delete',
 
+  // Property Attachments
+  PROPERTY_ATTACHMENTS_GET_BY_PROPERTY: 'propertyAttachments:getByProperty',
+  PROPERTY_ATTACHMENTS_CREATE: 'propertyAttachments:create',
+  PROPERTY_ATTACHMENTS_DELETE: 'propertyAttachments:delete',
+  PROPERTY_ATTACHMENTS_OPEN: 'propertyAttachments:open',
+  PROPERTY_ATTACHMENTS_SAVE_FILE: 'propertyAttachments:saveFile',
+
   // Stats
   STATS_GET_DASHBOARD: 'stats:getDashboard',
   STATS_GET_STALE_DEALS: 'stats:getStaleDeals',

@@ -14,6 +14,7 @@ import type {
   Deal,
   Activity,
   Tag,
+  PropertyAttachment,
   CreateBuyerRequest,
   UpdateBuyerRequest,
   BuyerFilters,
@@ -26,6 +27,7 @@ import type {
   CreateDealRequest,
   UpdateDealRequest,
   CreateActivityRequest,
+  CreatePropertyAttachmentRequest,
   DashboardStats,
   DealStatus,
 } from '../src/lib/types';
@@ -62,6 +64,11 @@ const IPC_CHANNELS = {
   TAGS_GET_ALL: 'tags:getAll',
   TAGS_CREATE: 'tags:create',
   TAGS_DELETE: 'tags:delete',
+  PROPERTY_ATTACHMENTS_GET_BY_PROPERTY: 'propertyAttachments:getByProperty',
+  PROPERTY_ATTACHMENTS_CREATE: 'propertyAttachments:create',
+  PROPERTY_ATTACHMENTS_DELETE: 'propertyAttachments:delete',
+  PROPERTY_ATTACHMENTS_OPEN: 'propertyAttachments:open',
+  PROPERTY_ATTACHMENTS_SAVE_FILE: 'propertyAttachments:saveFile',
   STATS_GET_DASHBOARD: 'stats:getDashboard',
   STATS_GET_STALE_DEALS: 'stats:getStaleDeals',
 } as const;
@@ -189,6 +196,26 @@ const api = {
   },
 
   // ============================================
+  // PROPERTY ATTACHMENTS
+  // ============================================
+  propertyAttachments: {
+    getByProperty: (propertyId: string): Promise<IPCResponse<PropertyAttachment[]>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.PROPERTY_ATTACHMENTS_GET_BY_PROPERTY, propertyId),
+
+    create: (data: CreatePropertyAttachmentRequest): Promise<IPCResponse<PropertyAttachment>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.PROPERTY_ATTACHMENTS_CREATE, data),
+
+    saveFile: (data: { propertyId: string; originalFilename: string; fileData: string }): Promise<IPCResponse<PropertyAttachment>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.PROPERTY_ATTACHMENTS_SAVE_FILE, data),
+
+    delete: (id: string): Promise<IPCResponse<void>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.PROPERTY_ATTACHMENTS_DELETE, id),
+
+    open: (id: string): Promise<IPCResponse<void>> =>
+      ipcRenderer.invoke(IPC_CHANNELS.PROPERTY_ATTACHMENTS_OPEN, id),
+  },
+
+  // ============================================
   // STATS
   // ============================================
   stats: {
@@ -209,4 +236,5 @@ try {
   console.error('[Preload] ERRORE durante esposizione API:', error);
 }
 
-// Il tipo ElectronAPI è definito in src/vite-env.d.ts
+// [TYPES] Export del tipo API per TypeScript
+export type ElectronAPI = typeof api;

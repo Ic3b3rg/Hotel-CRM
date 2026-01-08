@@ -11,17 +11,20 @@ import type {
   PropertyType,
   PropertyCategory,
   PropertyCondition,
+  PropertyOperationType,
 } from '../../../src/lib/types';
 
 interface PropertyRow {
   id: string;
   name: string;
+  codice: string | null;
   address_street: string;
   address_number: string | null;
   address_city: string;
   address_cap: string;
   address_province: string;
   address_country: string;
+  regione: string | null;
   type: string;
   category: string;
   rooms: number;
@@ -31,6 +34,9 @@ interface PropertyRow {
   price_max: number;
   notes: string;
   seller_id: string | null;  // Ora nullable
+  has_incarico: number;      // SQLite boolean (0/1)
+  incarico_percentuale: number | null;
+  incarico_scadenza: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -103,6 +109,7 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
     const now = this.now();
 
     // Valori di default per campi opzionali
+    const codice = data.codice || '';
     const address = {
       street: data.address?.street || '',
       number: data.address?.number || '',
@@ -111,6 +118,7 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
       province: data.address?.province || '',
       country: data.address?.country || 'Italia',
     };
+    const regione = data.regione || '';
     const type = data.type || 'altro';
     const category = data.category || 'n/a';
     const rooms = data.rooms ?? 0;
@@ -119,22 +127,28 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
     const priceMin = data.priceMin ?? 0;
     const priceMax = data.priceMax ?? 0;
     const tags = data.tags || [];
+    const operationTypes = data.operationTypes || [];
+    const hasIncarico = data.hasIncarico ? 1 : 0;
+    const incaricoPercentuale = data.incaricoPercentuale ?? null;
+    const incaricoScadenza = data.incaricoScadenza || null;
 
     return this.runInTransaction(() => {
       this.db
         .prepare(
-          `INSERT INTO properties (id, name, address_street, address_number, address_city, address_cap, address_province, address_country, type, category, rooms, beds, condition, price_min, price_max, notes, seller_id, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO properties (id, name, codice, address_street, address_number, address_city, address_cap, address_province, address_country, regione, type, category, rooms, beds, condition, price_min, price_max, notes, seller_id, has_incarico, incarico_percentuale, incarico_scadenza, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           id,
           data.name,
+          codice,
           address.street,
           address.number || null,
           address.city,
           address.cap,
           address.province,
           address.country,
+          regione,
           type,
           category,
           rooms,
@@ -144,6 +158,9 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
           priceMax,
           data.notes || '',
           data.sellerId || null,  // seller_id ora può essere null
+          hasIncarico,
+          incaricoPercentuale,
+          incaricoScadenza,
           now,
           now
         );
@@ -151,6 +168,11 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
       // Inserisce i tag se presenti
       for (const tagName of tags) {
         this.linkTag(id, tagName);
+      }
+
+      // Inserisce i tipi di operazione se presenti
+      for (const opType of operationTypes) {
+        this.linkOperationType(id, opType);
       }
 
       return this.getById(id)!;
@@ -171,6 +193,10 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
         fields.push('name = ?');
         values.push(data.name);
       }
+      if (data.codice !== undefined) {
+        fields.push('codice = ?');
+        values.push(data.codice);
+      }
       if (data.address !== undefined) {
         fields.push('address_street = ?', 'address_number = ?', 'address_city = ?', 'address_cap = ?', 'address_province = ?', 'address_country = ?');
         values.push(
@@ -181,6 +207,10 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
           data.address.province,
           data.address.country
         );
+      }
+      if (data.regione !== undefined) {
+        fields.push('regione = ?');
+        values.push(data.regione);
       }
       if (data.type !== undefined) {
         fields.push('type = ?');
@@ -214,8 +244,26 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
         fields.push('notes = ?');
         values.push(data.notes);
       }
+      if (data.sellerId !== undefined) {
+        fields.push('seller_id = ?');
+        values.push(data.sellerId || null);
+      }
+      if (data.hasIncarico !== undefined) {
+        fields.push('has_incarico = ?');
+        values.push(data.hasIncarico ? 1 : 0);
+      }
+      if (data.incaricoPercentuale !== undefined) {
+        fields.push('incarico_percentuale = ?');
+        values.push(data.incaricoPercentuale ?? null);
+      }
+      if (data.incaricoScadenza !== undefined) {
+        fields.push('incarico_scadenza = ?');
+        values.push(data.incaricoScadenza || null);
+      }
 
       if (fields.length > 0) {
+        fields.push('updated_at = ?');
+        values.push(this.now());
         values.push(data.id);
         this.db.prepare(`UPDATE properties SET ${fields.join(', ')} WHERE id = ?`).run(...values);
       }
@@ -225,6 +273,14 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
         this.db.prepare(`DELETE FROM property_tags WHERE property_id = ?`).run(data.id);
         for (const tagName of data.tags) {
           this.linkTag(data.id, tagName);
+        }
+      }
+
+      // Aggiorna i tipi di operazione se forniti
+      if (data.operationTypes) {
+        this.db.prepare(`DELETE FROM property_operation_types WHERE property_id = ?`).run(data.id);
+        for (const opType of data.operationTypes) {
+          this.linkOperationType(data.id, opType);
         }
       }
 
@@ -264,6 +320,12 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
       .run(propertyId, tag.id);
   }
 
+  private linkOperationType(propertyId: string, operationType: PropertyOperationType): void {
+    this.db
+      .prepare(`INSERT OR IGNORE INTO property_operation_types (property_id, operation_type) VALUES (?, ?)`)
+      .run(propertyId, operationType);
+  }
+
   private mapRowToEntity(row: PropertyRow): Property {
     const tags = this.db
       .prepare(
@@ -273,9 +335,14 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
       )
       .all(row.id) as { name: string }[];
 
+    const operationTypes = this.db
+      .prepare(`SELECT operation_type FROM property_operation_types WHERE property_id = ?`)
+      .all(row.id) as { operation_type: string }[];
+
     return {
       id: row.id,
       name: row.name,
+      codice: row.codice || '',
       address: {
         street: row.address_street || '',
         number: row.address_number || '',
@@ -284,6 +351,7 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
         province: row.address_province || '',
         country: row.address_country || 'Italia',
       },
+      regione: row.regione || '',
       type: (row.type as PropertyType) || 'altro',
       category: (row.category as PropertyCategory) || 'n/a',
       rooms: row.rooms || 0,
@@ -292,8 +360,12 @@ export class PropertiesRepository extends BaseRepository<Property, CreatePropert
       priceMin: row.price_min || 0,
       priceMax: row.price_max || 0,
       tags: tags.map((t) => t.name),
+      operationTypes: operationTypes.map((o) => o.operation_type as PropertyOperationType),
       notes: row.notes || '',
       sellerId: row.seller_id || '',  // Stringa vuota se null
+      hasIncarico: row.has_incarico === 1,
+      incaricoPercentuale: row.incarico_percentuale ?? undefined,
+      incaricoScadenza: row.incarico_scadenza ?? undefined,
       createdAt: new Date(row.created_at),
     };
   }
