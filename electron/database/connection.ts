@@ -1,18 +1,18 @@
 // [DATABASE] SQLite connection management
 // Gestisce la connessione al database SQLite e le migrazioni
 
-import { app } from 'electron';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
-import type Database from 'better-sqlite3';
+import { app } from "electron";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import { createRequire } from "module";
+import type Database from "better-sqlite3";
 
 // ESM compatibility
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
-const BetterSqlite3 = require('better-sqlite3') as typeof Database;
+const BetterSqlite3 = require("better-sqlite3") as typeof Database;
 
 // [GLOBALS] Istanza del database
 let db: Database.Database | null = null;
@@ -22,15 +22,32 @@ let db: Database.Database | null = null;
  * In development usa la cartella del progetto, in production usa userData
  */
 function getDatabasePath(): string {
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
   if (isDev) {
     // In development, usa la cartella del progetto
-    return path.join(process.cwd(), 'hotel-crm.db');
+    return path.join(process.cwd(), "hotel-crm.db");
   } else {
     // In production, usa la cartella userData dell'app
-    const userDataPath = app.getPath('userData');
-    return path.join(userDataPath, 'hotel-crm.db');
+    const userDataPath = app.getPath("userData");
+    return path.join(userDataPath, "hotel-crm.db");
+  }
+}
+
+/**
+ * Ottiene il percorso della cartella allegati
+ * In development usa la cartella del progetto, in production usa userData
+ */
+export function getAttachmentsDir(): string {
+  const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+
+  if (isDev) {
+    // In development, usa la cartella del progetto
+    return path.join(process.cwd(), "attachments");
+  } else {
+    // In production, usa la cartella userData dell'app
+    const userDataPath = app.getPath("userData");
+    return path.join(userDataPath, "attachments");
   }
 }
 
@@ -39,14 +56,19 @@ function getDatabasePath(): string {
  * In development usa la cartella del progetto, in production usa extraResources
  */
 function getMigrationsDir(): string {
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
   if (isDev) {
-    // In development, usa la cartella del progetto
-    return path.join(__dirname, 'migrations');
+    // In development, usa la cartella del progetto (process.cwd() punta alla root)
+    return path.join(process.cwd(), "electron", "database", "migrations");
   } else {
     // In production, i file sono copiati in resources/electron/database/migrations via extraResources
-    return path.join(process.resourcesPath, 'electron', 'database', 'migrations');
+    return path.join(
+      process.resourcesPath,
+      "electron",
+      "database",
+      "migrations",
+    );
   }
 }
 
@@ -55,39 +77,58 @@ function getMigrationsDir(): string {
  */
 function runMigrations(database: Database.Database): void {
   const migrationsDir = getMigrationsDir();
-  console.log('[Database] Cercando migrazioni in:', migrationsDir);
+  console.log("[Database] Cercando migrazioni in:", migrationsDir);
 
   // Lista delle migration da eseguire in ordine
   const migrations = [
-    '001_schema.sql',
-    '002_optional_seller.sql',
+    "001_schema.sql",
+    "002_optional_seller.sql",
+    "003_property_codice.sql",
+    "004_property_incarico.sql",
+    "005_property_regione.sql",
+    "006_deal_oggetto.sql",
+    "007_deal_prezzo_richiesto.sql",
+    "008_property_operation_types.sql",
+    "009_deal_provvigioni.sql",
+    "010_deal_pagamenti.sql",
+    "011_property_attachments.sql",
   ];
 
   for (const migrationFile of migrations) {
     const migrationPath = path.join(migrationsDir, migrationFile);
 
     if (!fs.existsSync(migrationPath)) {
-      if (migrationFile === '001_schema.sql') {
-        console.warn('[Database] File migrazione base non trovato:', migrationPath);
+      if (migrationFile === "001_schema.sql") {
+        console.warn(
+          "[Database] File migrazione base non trovato:",
+          migrationPath,
+        );
         createSchemaInline(database);
       }
       continue;
     }
 
     try {
-      const sql = fs.readFileSync(migrationPath, 'utf-8');
+      const sql = fs.readFileSync(migrationPath, "utf-8");
       database.exec(sql);
       console.log(`[Database] Migrazione ${migrationFile} eseguita`);
     } catch (error) {
       // Ignora errori se la tabella esiste già o la migrazione è già stata applicata
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (!errorMessage.includes('already exists') && !errorMessage.includes('no such table: properties')) {
-        console.error(`[Database] Errore migrazione ${migrationFile}:`, errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        !errorMessage.includes("already exists") &&
+        !errorMessage.includes("no such table: properties")
+      ) {
+        console.error(
+          `[Database] Errore migrazione ${migrationFile}:`,
+          errorMessage,
+        );
       }
     }
   }
 
-  console.log('[Database] Migrazioni completate');
+  console.log("[Database] Migrazioni completate");
 }
 
 /**
@@ -115,6 +156,7 @@ function createSchemaInline(database: Database.Database): void {
     CREATE TABLE IF NOT EXISTS properties (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      codice TEXT DEFAULT '',
       address_street TEXT DEFAULT '',
       address_number TEXT,
       address_city TEXT DEFAULT '',
@@ -130,6 +172,10 @@ function createSchemaInline(database: Database.Database): void {
       price_max INTEGER DEFAULT 0,
       notes TEXT DEFAULT '',
       seller_id TEXT REFERENCES sellers(id) ON DELETE SET NULL,
+      has_incarico INTEGER DEFAULT 0,
+      incarico_percentuale REAL DEFAULT NULL,
+      incarico_scadenza TEXT DEFAULT NULL,
+      regione TEXT DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -157,8 +203,18 @@ function createSchemaInline(database: Database.Database): void {
       buyer_id TEXT NOT NULL REFERENCES buyers(id) ON DELETE CASCADE,
       property_id TEXT NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
       status TEXT NOT NULL DEFAULT 'nuovo_contatto' CHECK (status IN ('nuovo_contatto', 'in_corso', 'offerta_inviata', 'diligenza', 'chiuso_positivo', 'chiuso_negativo')),
+      oggetto TEXT DEFAULT '' CHECK (oggetto IN ('', 'vendita', 'affitto', 'gestione')),
       price_offered INTEGER,
       price_negotiated INTEGER,
+      prezzo_richiesto INTEGER,
+      provvigione_compratore REAL DEFAULT NULL,
+      collaboratore_compratore TEXT DEFAULT '',
+      provvigione_venditore REAL DEFAULT NULL,
+      collaboratore_venditore TEXT DEFAULT '',
+      pagamento_compratore TEXT DEFAULT '' CHECK (pagamento_compratore IN ('', 'si', 'no', 'rateale')),
+      acconto_compratore INTEGER DEFAULT 0,
+      pagamento_venditore TEXT DEFAULT '' CHECK (pagamento_venditore IN ('', 'si', 'no', 'rateale')),
+      acconto_venditore INTEGER DEFAULT 0,
       notes TEXT DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -210,19 +266,45 @@ function createSchemaInline(database: Database.Database): void {
       PRIMARY KEY (buyer_id, property_type)
     );
 
+    -- PROPERTY_OPERATION_TYPES (property operation types - many-to-many)
+    CREATE TABLE IF NOT EXISTS property_operation_types (
+      property_id TEXT NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+      operation_type TEXT NOT NULL CHECK (operation_type IN ('affitto_attivita', 'vendita_attivita', 'affitto_mura', 'vendita_mura', 'vendita_cespite', 'vendita_societa')),
+      PRIMARY KEY (property_id, operation_type)
+    );
+
+    -- PROPERTY_ATTACHMENTS (property file attachments)
+    CREATE TABLE IF NOT EXISTS property_attachments (
+      id TEXT PRIMARY KEY,
+      property_id TEXT NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      original_filename TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_type TEXT DEFAULT '',
+      file_size INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- INDEXES
     CREATE INDEX IF NOT EXISTS idx_sellers_name ON sellers(name);
     CREATE INDEX IF NOT EXISTS idx_properties_seller ON properties(seller_id);
     CREATE INDEX IF NOT EXISTS idx_properties_city ON properties(address_city);
+    CREATE INDEX IF NOT EXISTS idx_properties_codice ON properties(codice);
     CREATE INDEX IF NOT EXISTS idx_buyers_name ON buyers(name);
     CREATE INDEX IF NOT EXISTS idx_buyers_budget ON buyers(budget_min, budget_max);
     CREATE INDEX IF NOT EXISTS idx_deals_buyer ON deals(buyer_id);
     CREATE INDEX IF NOT EXISTS idx_deals_property ON deals(property_id);
     CREATE INDEX IF NOT EXISTS idx_deals_status ON deals(status);
+    CREATE INDEX IF NOT EXISTS idx_deals_oggetto ON deals(oggetto);
+    CREATE INDEX IF NOT EXISTS idx_deals_prezzo_richiesto ON deals(prezzo_richiesto);
     CREATE INDEX IF NOT EXISTS idx_activities_deal ON activities(deal_id);
     CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date DESC);
+    CREATE INDEX IF NOT EXISTS idx_property_operation_types_property ON property_operation_types(property_id);
+    CREATE INDEX IF NOT EXISTS idx_property_operation_types_type ON property_operation_types(operation_type);
+    CREATE INDEX IF NOT EXISTS idx_property_attachments_property ON property_attachments(property_id);
+    CREATE INDEX IF NOT EXISTS idx_property_attachments_type ON property_attachments(file_type);
   `);
-  console.log('[Database] Schema creato inline');
+  console.log("[Database] Schema creato inline");
 }
 
 /**
@@ -235,7 +317,7 @@ export async function initDatabase(): Promise<Database.Database> {
   }
 
   const dbPath = getDatabasePath();
-  console.log('[Database] Percorso database:', dbPath);
+  console.log("[Database] Percorso database:", dbPath);
 
   // Crea la cartella se non esiste
   const dbDir = path.dirname(dbPath);
@@ -250,7 +332,7 @@ export async function initDatabase(): Promise<Database.Database> {
   });
 
   // Abilita le foreign keys
-  db.pragma('foreign_keys = ON');
+  db.pragma("foreign_keys = ON");
 
   // Esegui le migrazioni
   runMigrations(db);
@@ -264,7 +346,9 @@ export async function initDatabase(): Promise<Database.Database> {
  */
 export function getDatabase(): Database.Database {
   if (!db) {
-    throw new Error('Database non inizializzato. Chiamare initDatabase() prima.');
+    throw new Error(
+      "Database non inizializzato. Chiamare initDatabase() prima.",
+    );
   }
   return db;
 }
@@ -276,6 +360,6 @@ export function closeDatabase(): void {
   if (db) {
     db.close();
     db = null;
-    console.log('[Database] Connessione chiusa');
+    console.log("[Database] Connessione chiusa");
   }
 }
