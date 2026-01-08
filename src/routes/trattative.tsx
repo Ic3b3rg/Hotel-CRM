@@ -370,26 +370,26 @@ export default function TrattativePage() {
               )}
             </div>
 
-            {/* Info */}
+            {/* Info Prezzi */}
             <div className="grid grid-cols-2 gap-4 text-sm">
-              {selectedDeal.prezzoRichiesto && (
-                <div>
-                  <span className="text-muted-foreground">Richiesto:</span>{' '}
-                  <span className="font-medium">{formatCurrency(selectedDeal.prezzoRichiesto)}</span>
-                </div>
-              )}
-              {selectedDeal.priceOffered && (
-                <div>
-                  <span className="text-muted-foreground">Offerta:</span>{' '}
-                  <span className="font-medium">{formatCurrency(selectedDeal.priceOffered)}</span>
-                </div>
-              )}
-              {selectedDeal.priceNegotiated && (
-                <div>
-                  <span className="text-muted-foreground">Negoziato:</span>{' '}
-                  <span className="font-medium">{formatCurrency(selectedDeal.priceNegotiated)}</span>
-                </div>
-              )}
+              <div>
+                <span className="text-muted-foreground">Richiesto:</span>{' '}
+                <span className="font-medium">
+                  {selectedDeal.prezzoRichiesto ? formatCurrency(selectedDeal.prezzoRichiesto) : <span className="text-muted-foreground italic">-</span>}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Offerta:</span>{' '}
+                <span className="font-medium">
+                  {selectedDeal.priceOffered ? formatCurrency(selectedDeal.priceOffered) : <span className="text-muted-foreground italic">-</span>}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Negoziato:</span>{' '}
+                <span className="font-medium">
+                  {selectedDeal.priceNegotiated ? formatCurrency(selectedDeal.priceNegotiated) : <span className="text-muted-foreground italic">-</span>}
+                </span>
+              </div>
               <div>
                 <span className="text-muted-foreground">Creata:</span>{' '}
                 {formatDate(selectedDeal.createdAt)}
@@ -400,63 +400,212 @@ export default function TrattativePage() {
               </div>
             </div>
 
+            {/* Specchietto Calcolo Provvigioni */}
+            {(() => {
+              const negoziato = selectedDeal.priceNegotiated;
+              const provvCompratore = selectedDeal.provvigioneCompratore;
+              const provvVenditore = selectedDeal.provvigioneVenditore;
+              const hasCollabCompratore = !!selectedDeal.collaboratoreCompratore;
+              const hasCollabVenditore = !!selectedDeal.collaboratoreVenditore;
+
+              // Calcoli lato compratore
+              const totaleCompratore = negoziato && provvCompratore !== undefined
+                ? negoziato * (provvCompratore / 100)
+                : null;
+              const quotaAgenziaCompratore = totaleCompratore !== null
+                ? (hasCollabCompratore ? totaleCompratore * 0.5 : totaleCompratore)
+                : null;
+              const quotaCollabCompratore = totaleCompratore !== null && hasCollabCompratore
+                ? totaleCompratore * 0.5
+                : null;
+
+              // Calcoli lato venditore
+              const totaleVenditore = negoziato && provvVenditore !== undefined
+                ? negoziato * (provvVenditore / 100)
+                : null;
+              const quotaAgenziaVenditore = totaleVenditore !== null
+                ? (hasCollabVenditore ? totaleVenditore * 0.5 : totaleVenditore)
+                : null;
+              const quotaCollabVenditore = totaleVenditore !== null && hasCollabVenditore
+                ? totaleVenditore * 0.5
+                : null;
+
+              // Totale agenzia
+              const totaleAgenzia = (quotaAgenziaCompratore || 0) + (quotaAgenziaVenditore || 0);
+
+              return (
+                <div className="bg-muted/50 rounded-lg p-4 border">
+                  <h4 className="text-sm font-medium mb-3">Riepilogo Provvigioni</h4>
+                  {!negoziato ? (
+                    <p className="text-sm text-muted-foreground italic text-center py-2">
+                      Inserire prezzo negoziato per calcolare le provvigioni
+                    </p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        {/* Lato Compratore */}
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground text-xs uppercase">
+                            Compratore {provvCompratore !== undefined ? `(${provvCompratore}%)` : ''}
+                          </p>
+                          {totaleCompratore !== null ? (
+                            <>
+                              <p>
+                                <span className="text-muted-foreground">Totale:</span>{' '}
+                                <span className="font-medium">{formatCurrency(totaleCompratore)}</span>
+                              </p>
+                              <p className="text-xs">
+                                <span className="text-muted-foreground">Agenzia:</span>{' '}
+                                <span className="font-medium text-primary">{formatCurrency(quotaAgenziaCompratore!)}</span>
+                                {hasCollabCompratore && (
+                                  <span className="text-muted-foreground"> (50%)</span>
+                                )}
+                              </p>
+                              {hasCollabCompratore && (
+                                <p className="text-xs">
+                                  <span className="text-muted-foreground">Collab:</span>{' '}
+                                  <span className="font-medium">{formatCurrency(quotaCollabCompratore!)}</span>
+                                  <span className="text-muted-foreground"> (50%)</span>
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-muted-foreground italic">Provvigione non specificata</p>
+                          )}
+                        </div>
+                        {/* Lato Venditore */}
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground text-xs uppercase">
+                            Venditore {provvVenditore !== undefined ? `(${provvVenditore}%)` : ''}
+                          </p>
+                          {totaleVenditore !== null ? (
+                            <>
+                              <p>
+                                <span className="text-muted-foreground">Totale:</span>{' '}
+                                <span className="font-medium">{formatCurrency(totaleVenditore)}</span>
+                              </p>
+                              <p className="text-xs">
+                                <span className="text-muted-foreground">Agenzia:</span>{' '}
+                                <span className="font-medium text-primary">{formatCurrency(quotaAgenziaVenditore!)}</span>
+                                {hasCollabVenditore && (
+                                  <span className="text-muted-foreground"> (50%)</span>
+                                )}
+                              </p>
+                              {hasCollabVenditore && (
+                                <p className="text-xs">
+                                  <span className="text-muted-foreground">Collab:</span>{' '}
+                                  <span className="font-medium">{formatCurrency(quotaCollabVenditore!)}</span>
+                                  <span className="text-muted-foreground"> (50%)</span>
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-muted-foreground italic">Provvigione non specificata</p>
+                          )}
+                        </div>
+                      </div>
+                      {/* Totale Agenzia */}
+                      {(quotaAgenziaCompratore !== null || quotaAgenziaVenditore !== null) && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <p className="text-sm font-medium">
+                            <span className="text-muted-foreground">Totale Agenzia:</span>{' '}
+                            <span className="text-primary text-base">{formatCurrency(totaleAgenzia)}</span>
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Sezione Provvigioni */}
-            {(selectedDeal.provvigioneCompratore !== undefined || selectedDeal.provvigioneVenditore !== undefined) && (
-              <div className="pt-4 border-t">
-                <h4 className="text-sm font-medium mb-3">Provvigioni</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {/* Compratore */}
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-xs uppercase">Compratore</p>
-                    {selectedDeal.provvigioneCompratore !== undefined && (
-                      <p><span className="text-muted-foreground">Provvigione:</span> <span className="font-medium">{selectedDeal.provvigioneCompratore}%</span></p>
-                    )}
-                    {selectedDeal.collaboratoreCompratore && (
-                      <p><span className="text-muted-foreground">Collaboratore:</span> <span className="font-medium">{selectedDeal.collaboratoreCompratore}</span></p>
-                    )}
-                  </div>
-                  {/* Venditore */}
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-xs uppercase">Venditore</p>
-                    {selectedDeal.provvigioneVenditore !== undefined && (
-                      <p><span className="text-muted-foreground">Provvigione:</span> <span className="font-medium">{selectedDeal.provvigioneVenditore}%</span></p>
-                    )}
-                    {selectedDeal.collaboratoreVenditore && (
-                      <p><span className="text-muted-foreground">Collaboratore:</span> <span className="font-medium">{selectedDeal.collaboratoreVenditore}</span></p>
-                    )}
-                  </div>
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium mb-3">Provvigioni</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {/* Compratore */}
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs uppercase">Compratore</p>
+                  <p>
+                    <span className="text-muted-foreground">Provvigione:</span>{' '}
+                    <span className="font-medium">
+                      {selectedDeal.provvigioneCompratore !== undefined
+                        ? `${selectedDeal.provvigioneCompratore}%`
+                        : <span className="text-muted-foreground italic">Non specificato</span>}
+                    </span>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Collaboratore:</span>{' '}
+                    <span className="font-medium">
+                      {selectedDeal.collaboratoreCompratore
+                        || <span className="text-muted-foreground italic">Non specificato</span>}
+                    </span>
+                  </p>
+                </div>
+                {/* Venditore */}
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs uppercase">Venditore</p>
+                  <p>
+                    <span className="text-muted-foreground">Provvigione:</span>{' '}
+                    <span className="font-medium">
+                      {selectedDeal.provvigioneVenditore !== undefined
+                        ? `${selectedDeal.provvigioneVenditore}%`
+                        : <span className="text-muted-foreground italic">Non specificato</span>}
+                    </span>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Collaboratore:</span>{' '}
+                    <span className="font-medium">
+                      {selectedDeal.collaboratoreVenditore
+                        || <span className="text-muted-foreground italic">Non specificato</span>}
+                    </span>
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Sezione Pagamenti */}
-            {(selectedDeal.pagamentoCompratore || selectedDeal.pagamentoVenditore) && (
-              <div className="pt-4 border-t">
-                <h4 className="text-sm font-medium mb-3">Pagamenti</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {/* Compratore */}
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-xs uppercase">Compratore</p>
-                    {selectedDeal.pagamentoCompratore && (
-                      <p><span className="text-muted-foreground">Pagato:</span> <span className="font-medium">{getPagamentoStatusLabel(selectedDeal.pagamentoCompratore)}</span></p>
-                    )}
-                    {selectedDeal.accontoCompratore && (
-                      <p><span className="text-muted-foreground">Acconto:</span> <span className="font-medium text-green-600">Sì</span></p>
-                    )}
-                  </div>
-                  {/* Venditore */}
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground text-xs uppercase">Venditore</p>
-                    {selectedDeal.pagamentoVenditore && (
-                      <p><span className="text-muted-foreground">Pagato:</span> <span className="font-medium">{getPagamentoStatusLabel(selectedDeal.pagamentoVenditore)}</span></p>
-                    )}
-                    {selectedDeal.accontoVenditore && (
-                      <p><span className="text-muted-foreground">Acconto:</span> <span className="font-medium text-green-600">Sì</span></p>
-                    )}
-                  </div>
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium mb-3">Pagamenti</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {/* Compratore */}
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs uppercase">Compratore</p>
+                  <p>
+                    <span className="text-muted-foreground">Pagato:</span>{' '}
+                    <span className="font-medium">
+                      {selectedDeal.pagamentoCompratore
+                        ? getPagamentoStatusLabel(selectedDeal.pagamentoCompratore)
+                        : <span className="text-muted-foreground italic">Non specificato</span>}
+                    </span>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Acconto:</span>{' '}
+                    <span className={`font-medium ${selectedDeal.accontoCompratore ? 'text-green-600' : ''}`}>
+                      {selectedDeal.accontoCompratore ? 'Si' : 'No'}
+                    </span>
+                  </p>
+                </div>
+                {/* Venditore */}
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs uppercase">Venditore</p>
+                  <p>
+                    <span className="text-muted-foreground">Pagato:</span>{' '}
+                    <span className="font-medium">
+                      {selectedDeal.pagamentoVenditore
+                        ? getPagamentoStatusLabel(selectedDeal.pagamentoVenditore)
+                        : <span className="text-muted-foreground italic">Non specificato</span>}
+                    </span>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Acconto:</span>{' '}
+                    <span className={`font-medium ${selectedDeal.accontoVenditore ? 'text-green-600' : ''}`}>
+                      {selectedDeal.accontoVenditore ? 'Si' : 'No'}
+                    </span>
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Sezione Attivita */}
             <div className="pt-4 border-t">

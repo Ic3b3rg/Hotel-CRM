@@ -1,6 +1,7 @@
 // [PAGE] Immobili - Properties list and management
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +11,12 @@ import { TagBadge } from '@/components/tag-badge';
 import { DetailPanel } from '@/components/detail-panel';
 import { EmptyState } from '@/components/empty-state';
 import { PropertyForm } from '@/components/property-form';
+import { SellerDetail } from '@/components/seller-detail';
 import { useProperties } from '@/hooks/use-properties';
 import { useSellers } from '@/hooks/use-sellers';
 import { usePropertyAttachments } from '@/hooks/use-property-attachments';
 import { formatCurrency, getPropertyTypeLabel, getConditionLabel, getOperationTypeLabel } from '@/lib/utils-crm';
-import type { Property, CreatePropertyRequest, UpdatePropertyRequest, PropertyOperationType } from '@/lib/types';
+import type { Property, Seller, CreatePropertyRequest, UpdatePropertyRequest, PropertyOperationType } from '@/lib/types';
 import { Building2, MapPin, BedDouble, Filter, ChevronDown, Loader2, Pencil, Trash2, FileCheck, X, Paperclip, FileSpreadsheet, FileText, Upload } from 'lucide-react';
 import {
   DropdownMenu,
@@ -68,8 +70,10 @@ const OPERATION_TYPES: PropertyOperationType[] = [
 ];
 
 export default function ImmobiliPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
@@ -97,6 +101,20 @@ export default function ImmobiliPage() {
       fetchByProperty(selectedProperty.id);
     }
   }, [selectedProperty, fetchByProperty]);
+
+  // Open property from URL parameter (e.g., /immobili?open=propertyId)
+  useEffect(() => {
+    const openPropertyId = searchParams.get('open');
+    if (openPropertyId && properties.length > 0) {
+      const property = properties.find(p => p.id === openPropertyId);
+      if (property) {
+        setSelectedProperty(property);
+        // Clear the URL parameter after opening
+        searchParams.delete('open');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, properties, setSearchParams]);
 
   const handleCreateProperty = async (data: CreatePropertyRequest) => {
     const result = await createProperty(data);
@@ -499,7 +517,16 @@ export default function ImmobiliPage() {
               {selectedProperty.sellerId && (
                 <div>
                   <span className="text-muted-foreground">Venditore:</span>{' '}
-                  {getSellerName(selectedProperty.sellerId)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const seller = sellers.find(s => s.id === selectedProperty.sellerId);
+                      if (seller) setSelectedSeller(seller);
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    {getSellerName(selectedProperty.sellerId)}
+                  </button>
                 </div>
               )}
             </div>
@@ -673,6 +700,20 @@ export default function ImmobiliPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Seller Detail Panel */}
+      <DetailPanel
+        title="Dettaglio Venditore"
+        open={selectedSeller !== null}
+        onClose={() => setSelectedSeller(null)}
+      >
+        {selectedSeller && (
+          <SellerDetail
+            seller={selectedSeller}
+            properties={properties.filter(p => p.sellerId === selectedSeller.id)}
+          />
+        )}
+      </DetailPanel>
     </div>
   );
 }
