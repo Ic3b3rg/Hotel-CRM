@@ -63,7 +63,7 @@ export function Sidebar() {
                       : 'text-sidebar-foreground hover:bg-sidebar-accent'
                   )}
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <item.icon className="w-5 h-5 shrink-0" />
                   {!collapsed && <span>{item.label}</span>}
                 </Link>
               </li>
@@ -73,7 +73,7 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border">
-        {!collapsed && <p className="text-xs text-muted-foreground">v1.0 — Offline Mode</p>}
+        {!collapsed && <p className="text-xs text-muted-foreground">v1.1 — Offline Mode</p>}
       </div>
     </aside>
   );
