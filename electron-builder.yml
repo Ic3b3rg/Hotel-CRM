@@ -59,9 +59,11 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  allowElevation: true  # Permette elevazione privilegi per chiudere l'app durante installazione
+  deleteAppDataOnUninstall: false  # NON cancella i dati SQLite in %APPDATA%
   # installerIcon: resources/icon.ico  # Decommentare quando disponibile
   # uninstallerIcon: resources/icon.ico
-  license: LICENSE
+  # license: LICENSE  # Commentato - decommenta se esiste il file LICENSE
   differentialPackage: false  # Disabilita packaging differenziale per evitare errori con file mancanti
 
 # Linux Configuration (opzionale)
